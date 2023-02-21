@@ -2,15 +2,10 @@
 The first attempt for understanding the frequency of computational updates given particular scenarios
 Alastair Shipman
 """
-import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 
-mpl.use('TkAgg')  # or can use 'TkAgg', whatever you have/prefer
-
 MPH_TO_MS = 0.44704
-
-
 
 def plot_frame_times(frame_time_dict, xlabels, ylabels, title):
     array_to_plot = []
@@ -103,8 +98,20 @@ def simple_test_case():
         plot_frame_times(frame_times, v_actor_n, v_ego_0 , dist)
 
 
-def main():
-    simple_test_case()
+
+from visualisation import Visualiser
+import config
+from model.PathPlanning import BubbleGenerationTrajectoryOptimiser as bgto
+
+def main(visualising=True):
+    """here we control the simulation"""
+    scenario = config.scenario
+    scenario.run()
+
+    if visualising:
+        Visualiser.Visualiser(scenario)
+    # bgto.main()
+
 
 if __name__ == "__main__":
     main()
