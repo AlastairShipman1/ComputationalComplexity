@@ -1,6 +1,4 @@
 
-
-
 def main():
     """here we control the simulation"""
 
