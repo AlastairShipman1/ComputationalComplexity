@@ -4,7 +4,7 @@ image_file_path= "assets/Images/"
 video_file_path= "assets/Videos/"
 
 project_path = os.path.dirname(os.path.realpath(__file__))
-
+recording =False
 
 input_file_path = f"{project_path}/input_data"
 if not os.path.exists(input_file_path):
