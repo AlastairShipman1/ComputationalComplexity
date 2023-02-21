@@ -1,4 +1,5 @@
-
+import visualisation.PygameVisualiser.PygameVisualisation
+import config
 
 
 def main():
