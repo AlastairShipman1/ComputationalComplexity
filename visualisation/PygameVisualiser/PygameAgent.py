@@ -69,6 +69,7 @@ class PygameAgent(pygame.sprite.Sprite):
 
     def _create_original_image(self):
         # recentre the agent shape
+
         self.shape = shapely.affinity.scale(self.original_shape, self.model_display_scale, self.model_display_scale)
 
         self.original_image = pygame.Surface((2 * self.model_agent_size_pixels, 2 * self.model_agent_size_pixels),

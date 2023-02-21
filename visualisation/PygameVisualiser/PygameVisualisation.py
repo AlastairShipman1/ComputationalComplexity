@@ -31,9 +31,9 @@ class Visualisation:
         target_width = int(screen_proportion * screensize[0])
 
         # get background image
-        # self.bg = pygame.image.load('./Assets/Images/stock_city_612x612.jpg')
-        # self.bg_original = pygame.image.load('./Assets/Images/stock_city_612x612.jpg')
-        self.bg_original = pygame.image.load('./Assets/Images/bg.png')
+        # self.bg = pygame.image.load('./assets/Images/stock_city_612x612.jpg')
+        # self.bg_original = pygame.image.load('./assets/Images/stock_city_612x612.jpg')
+        self.bg_original = pygame.image.load('./assets/Images/bg.png')
 
         initial_aspect_ratio = self.bg_original.get_width() / self.bg_original.get_height()
 

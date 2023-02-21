@@ -1,7 +1,7 @@
 import os
 
-image_file_path="./Assets/Images/"
-video_file_path="./Assets/Videos"
+image_file_path= "assets/Images/"
+video_file_path= "assets/Videos/"
 
 project_path = os.path.dirname(os.path.realpath(__file__))
 
@@ -30,21 +30,3 @@ temp_image_folder = f"{output_image_file_path}/temp"
 if not os.path.exists(temp_image_folder):
     os.mkdir(temp_image_folder)
 
-import scenarios.Scenario as Scenario
-
-#scenario=Scenario.RandomScenario()
-scenario=Scenario.BasicCorridorScenario()
-#
-profiling=False
-
-visualisation_metrics={"visualising": False,
-                       "screen_prop": 0.8,
-                       "figure_padding": 0,
-                       "use_existing_bg": True,
-                       "recording":False
-                       }
-
-image_file_path="./Assets/Images/"
-video_file_path="./Assets/Videos"
-
-bubble_generation_visualisation=True
