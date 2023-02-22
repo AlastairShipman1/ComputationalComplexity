@@ -7,25 +7,30 @@ from visualisation.VisualisationUtils import Colours
 from visualisation.PygameVisualiser.PygameRecorder import ScreenRecorder
 import config
 import ctypes
-
+from visualisation.PygameVisualiser.Vehicle import EgoVehicle
 
 class Visualisation:
     def __init__(self):
 
         pygame.init()
 
-        # fix the axis of the display to be x% of appropriate dimension
         self.size = 1500, 750
 
-        self.ego_vehicle = None
-        self.pygame_agents = []
+        self.ego_vehicle = EgoVehicle()
+        self.pygame_agents = [self.ego_vehicle]
         self.obstacles = []
 
         # now that the size has been appropriately set, we can move onto setting up the surfaces
-        self.screen = pygame.display.set_mode(self.size, pygame.RESIZABLE)
+        self.screen = pygame.display.set_mode(self.size)
+        self.bg = pygame.image.load(config.input_image_file_path + 'citymap.png')
+        self.bg=pygame.transform.scale(self.bg, self.size)
+        self.screen.blit(self.bg, (0,0))
         self.is_paused = False
+        self.clock = pygame.time.Clock()
         if config.recording:
             self.recorder = ScreenRecorder(self.size[0], self.size[1], 10)
+
+
 
     # region Game logic
     def run(self):
@@ -53,11 +58,13 @@ class Visualisation:
         sys.exit()
 
     def run_single_frame(self):
+        dt = self.clock.tick(60)
         if self.is_paused:
             return
+        self.screen.blit(self.bg, (0, 0))
 
         self.previous_pos = pygame.mouse.get_pos()
-        self.screen.fill(Colours.BLUE)
+        self.update_agents(dt)
         self.draw_agents()
 
         pygame.display.flip()
@@ -92,13 +99,14 @@ class Visualisation:
 
     # region Draw functions
 
+    def update_agents(self, dt):
+        for agent in self.pygame_agents:
+            agent.update(dt)
+
     def draw_agents(self):
         """draw the agents here"""
         for agent in self.pygame_agents:
-            agent.draw(self.tickstamps[self.time_iterator], self.screen)
-            if agent.showing_predictions:
-                agent.draw_predictions(self.tickstamps[self.time_iterator], self.screen)
-                agent.draw_planned_trajectory(self.tickstamps[self.time_iterator], self.screen)
+            agent.draw(self.screen)
 
     # endregion
 
