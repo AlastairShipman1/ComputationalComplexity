@@ -8,29 +8,26 @@ from visualisation.PygameVisualiser.PygameRecorder import ScreenRecorder
 import config
 import ctypes
 from visualisation.PygameVisualiser.Vehicle import EgoVehicle
+from visualisation.PygameVisualiser.World import World
+
 
 class Visualisation:
     def __init__(self):
 
         pygame.init()
-
         self.size = 1500, 750
-
-        self.ego_vehicle = EgoVehicle()
-        self.pygame_agents = [self.ego_vehicle]
-        self.obstacles = []
+        self.world = World()
 
         # now that the size has been appropriately set, we can move onto setting up the surfaces
         self.screen = pygame.display.set_mode(self.size)
         self.bg = pygame.image.load(config.input_image_file_path + 'citymap.png')
-        self.bg=pygame.transform.scale(self.bg, self.size)
-        self.screen.blit(self.bg, (0,0))
+        self.bg = pygame.transform.smoothscale(self.bg, self.size)
+        self.screen.blit(self.bg, (0, 0))
         self.is_paused = False
         self.clock = pygame.time.Clock()
+
         if config.recording:
             self.recorder = ScreenRecorder(self.size[0], self.size[1], 10)
-
-
 
     # region Game logic
     def run(self):
@@ -41,6 +38,7 @@ class Visualisation:
                 finished = self.handle_events(event)
             if finished:
                 break
+
 
             self.run_single_frame()
             if config.recording:
@@ -61,52 +59,50 @@ class Visualisation:
         dt = self.clock.tick(60)
         if self.is_paused:
             return
+
+        keys = pygame.key.get_pressed()  # checking pressed keys
+
+        if keys[pygame.K_UP]:
+            self.world.ego_vehicle.send_message("u")
+        if keys[pygame.K_DOWN]:
+            self.world.ego_vehicle.send_message("d")
+        if keys[pygame.K_LEFT]:
+            self.world.ego_vehicle.send_message("l")
+        if keys[pygame.K_RIGHT]:
+            self.world.ego_vehicle.send_message("r")
+
         self.screen.blit(self.bg, (0, 0))
 
-        self.previous_pos = pygame.mouse.get_pos()
-        self.update_agents(dt)
-        self.draw_agents()
+        self.update_world(dt)
+        self.draw_world()
 
         pygame.display.flip()
 
     def handle_events(self, event) -> bool:
         if event.type == pygame.QUIT:
             return True
-
-
         elif event.type == pygame.KEYDOWN:
             if event.key == pygame.K_SPACE:
                 self.is_paused = not self.is_paused
-
             elif event.key == pygame.K_ESCAPE:
                 self.quit_display_and_game()
 
-            elif event.key == pygame.K_DOWN:
-                self.ego_vehicle.send_message("d")
-            elif event.key == pygame.K_UP:
-                self.ego_vehicle.send_message("u")
-
-            elif event.key == pygame.K_LEFT:
-                self.ego_vehicle.send_message("l")
-
-            elif event.key == pygame.K_RIGHT:
-                self.ego_vehicle.send_message("r")
-
         return False
-
 
     # endregion
 
     # region Draw functions
 
-    def update_agents(self, dt):
-        for agent in self.pygame_agents:
+    def update_world(self, dt):
+        for agent in self.world.pygame_agents:
             agent.update(dt)
 
-    def draw_agents(self):
+    def draw_world(self):
         """draw the agents here"""
-        for agent in self.pygame_agents:
+        for agent in self.world.pygame_agents:
             agent.draw(self.screen)
 
+        for obs in self.world.obstacles:
+            polygon_coords = list(obs.exterior.coords)
+            pygame.draw.polygon(self.screen, Colours.RED, polygon_coords)
     # endregion
-
