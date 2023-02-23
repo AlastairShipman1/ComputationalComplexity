@@ -2,6 +2,7 @@ import numpy as np
 import pygame
 import shapely.geometry
 from visualisation.VisualisationUtils import Colours
+# import Predictions
 import config
 from shapely.geometry import LineString
 
@@ -87,6 +88,8 @@ class EgoVehicle(Vehicle):
         super().__init__(ego_vehicle=True)
         self.world = world
         self.rays = []
+        self.past_positions=[]
+        # self.predicter = Predictions.ConstCurvaturePredicter()
 
     def send_message(self, string):
         if string == "u":
@@ -114,8 +117,18 @@ class EgoVehicle(Vehicle):
         pos = (self.x - self.offset[0], self.y - self.offset[1])
         surface.blit(self.image, pos)
 
+        if len(self.past_positions)>2:
+            self.past_positions=self.past_positions[-2:]
+        self.past_positions.append([self.x, self.y])
+
         self.draw_sensor_rays(surface)
         self.draw_sensor_area(surface)
+        # self.draw_predicted_motion(surface)
+
+    def draw_predicted_motion(self, surface):
+        predictions=self.predicter.make_predictions(self.past_positions)
+        for pred in predictions:
+            pygame.draw.circle(surface, Colours.GREEN, (pred[0], pred[1]), 4)
 
     def draw_sensor_area(self, surface):
         pygame.draw.aalines(surface, Colours.BLACK, True, self.rays)
@@ -128,7 +141,6 @@ class EgoVehicle(Vehicle):
             pygame.draw.polygon(surface, Colours.BLACK, list(geom.exterior.coords))
 
     def draw_sensor_rays(self, surface):
-        ...
         #  this needs to send out rays from a position on the car, across 360deg
         #  then, if these hit an obstacle, they should stop at the point of that obstacle.
         #  then we need to fill in the unknown areas behind these rays.
@@ -168,83 +180,3 @@ class EgoVehicle(Vehicle):
 
             angle -= 360 / number_rays
 
-    '''
-    # this is the c# code that does it=-
-    int rayIdx = 1;
-
-        for (int i = -halfVerticalRays; i < halfVerticalRays; i++)
-        {
-            // create a set of rays from the origin of this gameobject, 
-            // shoot them out to the distance required.
-            for (int ii = -halfHorizontalRays; ii < halfHorizontalRays; ii++)
-            {
-                /*
-                there is a ray, sent out at an azimuth to the x-axis (psi, or ii*horizontalRes) and an inclination to the vertical (theta, or 90-i*verticalRes)
-                to get the cartesian coordinates of the end point of that ray, we use a coordinate substitution:
-
-                x=rcos(psi)sin(theta)
-                y=rsin(psi)sin(theta)
-                z=rcos(theta)
-                */
-                float inclination = Mathf.Deg2Rad * (90 - i * verticalRes) + forwardInclination;
-                float azimuth = Mathf.Deg2Rad * ii * horizontalRes + forwardAzimuth;
-
-                float maxTheoreticalRange = CalculateRange( i * verticalRes, ii * horizontalRes);
-                float maxActualRange = maxTheoreticalRange * weatherRangeMultiplier;
-
-
-                float dirX = Mathf.Cos(azimuth) * Mathf.Sin(inclination);
-                float dirZ = Mathf.Sin(azimuth) * Mathf.Sin(inclination);
-                float dirY = Mathf.Cos(inclination);
-                Vector3 endPos = new Vector3(dirX, dirY, dirZ) * maxActualRange;
-
-                RaycastHit hit;
-                if (Physics.Raycast(transform.position, endPos, out hit, maxActualRange))
-                {
-                    // if it hits a collider, then stop it short, and record the length of the ray, the position of the endpoint
-                    // store the end points of the ray (relative to the local frame)
-                    endPos = hit.point - transform.position;
-                }
-
-                // store the vertex so that we can create a mesh out of it later.
-                meshVertices[rayIdx] = endPos;
-                rayIdx++;
-
-                // also, draw a line showing what it looks like.
-                //Debug.DrawLine(transform.position, endPos + transform.position, Color.blue, .05f);
-            }
-        }
-
-    def cast_rays():
-        start_angle = player_angle - HALF_FOV
-
-        for ray in range(CASTED_RAYS):
-            for depth in range(MAX_DEPTH):
-                target_x = player_x - math.sin(start_angle) * depth
-                target_y = player_y + math.cos(start_angle) * depth
-                col = int(target_x / TILE_SIZE)
-                row = int(target_y / TILE_SIZE)
-
-                square = row * MAP_SIZE + col
-                (target_y / TILE_SIZE) * MAP_SIZE + target_x / TILE_SIZE
-                if MAP[square] == '#':
-                    pygame.draw.rect(win, (0, 255, 0), (col * TILE_SIZE,
-                                                        row * TILE_SIZE,
-                                                        TILE_SIZE - 2,
-                                                        TILE_SIZE - 2))
-                    pygame.draw.line(win, (255, 255, 0), (player_x, player_y), (target_x, target_y))
-                    color = 50 / (1 + depth * depth * 0.0001)
-
-                    depth *= math.cos(player_angle - start_angle)
-
-                    wall_height = 21000 / (depth + 0.0001)
-
-                    if wall_height > SCREEN_HEIGHT: wall_height == SCREEN_HEIGHT
-
-                    pygame.draw.rect(win, (color, color, color), (
-                        SCREEN_HEIGHT + ray * SCALE, (SCREEN_HEIGHT / 2) - wall_height / 2, SCALE, wall_height))
-
-                    break
-
-            start_angle += STEP_ANGLE
-'''
