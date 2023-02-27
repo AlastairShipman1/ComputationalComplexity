@@ -2,58 +2,67 @@ import numpy as np
 
 
 class ConstCurvaturePredicter():
-    def __init__(self):
+    def __init__(self, vehicle, length_of_prediction_set):
         """
-            assumes the agent will move with constant curvature
-            basically an extension of the linear model
+        this takes the previous positions [[x,y,dt], [1,2,3], [1,2,4], [3,4,5]]
+        and extrapolates out
         """
-        # this means we take the last 1 seconds worth of ticksteps for calculating velocity, curvature, etc..
+        self.vehicle = vehicle
+        self.number_of_predictions = 10
+        self.prediction_time_jump = 0.15 #in seconds
+        self.length_of_prediction_set = length_of_prediction_set
 
     def make_predictions(self, past_positions):
         """ make predictions"""
+
+        if(len(past_positions)%2!=1):
+            raise Exception("Past positions should have an odd number of elements")
+        past_positions=past_positions[-self.length_of_prediction_set:]
+        mid_index=int(len(past_positions) / 2)+1
+
+        self.previous_points = [past_positions[-1], past_positions[mid_index], past_positions[0]]
+        self.circle_centre = self.circle_centre_from_three_points(self.previous_points[0], self.previous_points[1],self.previous_points[2])
+        self.radius = self.distance_between_two_points(self.circle_centre, self.previous_points[0])
+
+        self.averaging_time_window = 0
+        for p in past_positions:
+            self.averaging_time_window += p[-1]
+        self.averaging_time_window/= 1000  # in milliseconds
+
         predictions = []
-
-        for i in range(10):
-            predictions[i] = {}
-
-
-            position = self.predict_agent_position_at_n_secs_in_future(i, past_positions)
+        for i in range(self.number_of_predictions):
+            position = self.predict_agent_position_at_n_secs_in_future(i)
             predictions.append(position)
         return predictions
 
-    def predict_agent_position_at_n_secs_in_future(self, n, past_positions):
+    def predict_agent_position_at_n_secs_in_future(self, i):
         """ make predictions"""
 
-        previous_points = past_positions
-        circle_centre = self.circle_centre_from_three_points(previous_points[0], previous_points[1], previous_points[2])
-        radius = self.distance_between_two_points(circle_centre, previous_points[0])
-
-        if np.isfinite(radius):
-            angular_velocity = self.get_angular_velocity_between_two_points(circle_centre, previous_points[2],
-                                                                            previous_points[0], averaging_time_window)
-            d_theta = -angular_velocity * n
-            rel_x = agent.position[0] - circle_centre[0]
-            rel_y = agent.position[1] - circle_centre[1]
+        if np.isfinite(self.radius):
+            angular_velocity = self.get_angular_velocity_between_two_points(self.circle_centre, self.previous_points[2][:-1],
+                                                                            self.previous_points[0][:-1], self.averaging_time_window)
+            d_theta = -angular_velocity * i * self.prediction_time_jump
+            rel_x = self.vehicle.x - self.circle_centre[0]
+            rel_y = self.vehicle.y - self.circle_centre[1]
 
             agent_circle_rotated_pos = [rel_x * np.cos(d_theta) + rel_y * np.sin(d_theta),
                                         -rel_x * np.sin(d_theta) + rel_y * np.cos(d_theta)]
-            post_rotated_pos = [agent_circle_rotated_pos[0] + circle_centre[0],
-                                agent_circle_rotated_pos[1] + circle_centre[1]]
+            post_rotated_pos = [agent_circle_rotated_pos[0] + self.circle_centre[0],
+                                agent_circle_rotated_pos[1] + self.circle_centre[1]]
 
-            x_addition = post_rotated_pos[0] - agent.position[0]
-            y_addition = post_rotated_pos[1] - agent.position[1]
+            x_addition = post_rotated_pos[0] - self.vehicle.x
+            y_addition = post_rotated_pos[1] - self.vehicle.y
 
         else:
             # longitudinal components
-            longitudinal_velocity = self.get_longitudinal_velocity_between_two_points(previous_points[2],
-                                                                                      previous_points[0],
-                                                                                      averaging_time_window)
+            longitudinal_velocity = self.vehicle.v_long
+            #.get_longitudinal_velocity_between_two_points(self.previous_points[2],self.previous_points[0],self.averaging_time_window)
 
-            x_addition = dt * longitudinal_velocity[0]
-            y_addition = dt * longitudinal_velocity[1]
+            x_addition = self.prediction_time_jump *i * longitudinal_velocity * np.cos(np.deg2rad(self.vehicle.direction))
+            y_addition = - self.prediction_time_jump *i* longitudinal_velocity * np.sin(np.deg2rad(self.vehicle.direction))
 
-        predicted_x = agent.position[0] + x_addition
-        predicted_y = agent.position[1] + y_addition
+        predicted_x = self.vehicle.x + x_addition
+        predicted_y = self.vehicle.y + y_addition
         return [predicted_x, predicted_y]
 
     def get_longitudinal_velocity_between_two_points(self, point1, point2, time_window):
@@ -75,19 +84,8 @@ class ConstCurvaturePredicter():
     def signed_angle_between_in_radians(self, centre, point1, point2):
         p1 = [point1[0] - centre[0], point1[1] - centre[1]]
         p2 = [point2[0] - centre[0], point2[1] - centre[1]]
-        angle = np.arctan2(p1[0] * p2[1] - p1[1] * p2[0], p1[0] * p2[0] + p1[1] * p2[1]);
+        angle = np.arctan2(p1[0] * p2[1] - p1[1] * p2[0], p1[0] * p2[0] + p1[1] * p2[1])
         return angle
-
-    # def get_previous_positions(self, agent):
-    #     keys = sorted(agent.past_trajectory.keys())
-    #     if (len(keys) < self.length_of_curvature_moving_average_window_steps):
-    #         return [agent.position, agent.position, agent.position]
-    #
-    #     pos1 = agent.position
-    #     pos2 = agent.past_trajectory[keys[-int(self.length_of_curvature_moving_average_window_steps / 2)]].position
-    #     pos3 = agent.past_trajectory[keys[-self.length_of_curvature_moving_average_window_steps]].position
-    #
-    #     return [pos1, pos2, pos3]
 
     def get_signed_curvature_from_three_points(self, a, b, c):
         area = (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0])
@@ -107,6 +105,22 @@ class ConstCurvaturePredicter():
         return np.sqrt(dx ** 2 + dy ** 2)
 
     def circle_centre_from_three_points(self, p1, p2, p3):
+        temp = p2[0] * p2[0] + p2[1] * p2[1]
+        bc = (p1[0] * p1[0] + p1[1] * p1[1] - temp) / 2
+        cd = (temp - p3[0] * p3[0] - p3[1] * p3[1]) / 2
+        det = (p1[0] - p2[0]) * (p2[1] - p3[1]) - (p2[0] - p3[0]) * (p1[1] - p2[1])
+
+        if abs(det) < 1.0e-6:
+            return [np.inf, np.inf]
+
+        # Center of circle
+        cx = (bc * (p2[1] - p3[1]) - cd * (p1[1] - p2[1])) / det
+        cy = ((p1[0] - p2[0]) * cd - (p2[0] - p3[0]) * bc) / det
+
+        return [cx, cy]
+
+    def circle_centre_old(self, p1, p2, p3):
+        #this is an unstable piece of code- it doesn't handle floating point errors that well.
         c = (p1[0] - p2[0]) ** 2 + (p1[1] - p2[1]) ** 2
         a = (p2[0] - p3[0]) ** 2 + (p2[1] - p3[1]) ** 2
         b = (p3[0] - p1[0]) ** 2 + (p3[1] - p1[1]) ** 2
@@ -119,4 +133,3 @@ class ConstCurvaturePredicter():
         py = (a * (b + c - a) * p1[1] + b * (c + a - b) * p2[1] + c * (a + b - c) * p3[1]) / s
 
         return [px, py]
-

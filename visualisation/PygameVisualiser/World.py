@@ -22,7 +22,7 @@ class World():
 
 
 
-        self.obstacles=[polygon, polygon1, polygon2, polygon3, polygon4, polygon5, polygon6, polygon7]
+        self.obstacles=shapely.geometry.MultiPolygon([polygon, polygon1, polygon2, polygon3, polygon4, polygon5, polygon6, polygon7])
         self.ego_vehicle = EgoVehicle(self)
         self.pygame_agents = [self.ego_vehicle]
 

@@ -99,10 +99,11 @@ class Visualisation:
 
     def draw_world(self):
         """draw the agents here"""
+        for obs in self.world.obstacles.geoms:
+            polygon_coords = list(obs.exterior.coords)
+            pygame.draw.polygon(self.screen, Colours.RED, polygon_coords)
         for agent in self.world.pygame_agents:
             agent.draw(self.screen)
 
-        for obs in self.world.obstacles:
-            polygon_coords = list(obs.exterior.coords)
-            pygame.draw.polygon(self.screen, Colours.RED, polygon_coords)
+
     # endregion
