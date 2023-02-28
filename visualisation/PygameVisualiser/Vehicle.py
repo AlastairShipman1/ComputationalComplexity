@@ -240,7 +240,6 @@ class EgoVehicle(Vehicle):
                 max_v = self.assess_max_speed(d_lat, d_long, actor.speed)
 
                 if max_v < abs(self.v_long):
-                    print(max_v)
                     self.v_long= np.sign(self.v_long)* max_v
 
                     # if current speed is higher than maximum speed, need to limit this
@@ -344,7 +343,8 @@ class EgoVehicle(Vehicle):
             return np.inf
 
         # evaluate the worst case angle for an actor to approach the vehicle
-        angle = self.find_worst_case_rel_angle(d_lat, d_long, v_actor)
+        angle_1= self.find_worst_case_rel_angle(d_lat, d_long, v_actor)
+        angle = np.rad2deg(angle_1)
         square_dist_to_collision = d_lat ** 2 + d_long ** 2
         square_rel_vel = v_actor ** 2 + self.v_long ** 2 - 2 * v_actor * self.v_long * np.cos(np.deg2rad(180 - angle))
         time_to_col = np.sqrt(square_dist_to_collision / square_rel_vel)
@@ -355,9 +355,18 @@ class EgoVehicle(Vehicle):
     def find_worst_case_rel_angle(self, d_lat, d_long, v_actor):
         x = d_lat / d_long
         v_ratio = self.v_long / v_actor
-        A = 0.5 * (-v_ratio - np.sqrt(2 * v_ratio ** 2 * (1 - 2 * x)))
-        angle = np.arccos(A)
-        return np.rad2deg(angle)
+
+        # see powerpoint for a derivation of these values
+        a=2
+        b=2 * v_ratio
+        c= (x*v_ratio)**2-1
+
+        A= -b+np.sqrt(b**2-4*a*c)
+        angle_1 = np.arccos(A)
+        B=-b-np.sqrt(b**2-4*a*c)
+        angle_2=np.arccos(B)
+
+        return np.nanmin([angle_2, angle_1])
 
 
 class NormalVehicle(Vehicle):
