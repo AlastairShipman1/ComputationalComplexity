@@ -8,6 +8,15 @@ from visualisation.PygameVisualiser import Predictions
 import config
 from shapely.geometry import LineString
 
+""" 
+File for agents
+Units in metric
+"""
+
+
+class Actor:
+    def __init__(self):
+        self.speed =1
 
 class Image(pygame.sprite.Sprite):
     def __init__(self, ego_vehicle=False):
@@ -19,53 +28,47 @@ class Image(pygame.sprite.Sprite):
         self.image = pygame.image.load(image_path)
         self.image = pygame.transform.rotate(self.image, 180)
 
-        scale = 0.2
-        proposed_size = [self.image.get_width() * scale, self.image.get_height() * scale]
+        proposed_size = [30, 15]  # [6, 3] #6m by 3m.. need to make this resizable
         self.image = pygame.transform.smoothscale(self.image, proposed_size)
         self.rect = self.image.get_rect()
         self.centre = self.rect.center
 
 
-class Vehicle():
+class Vehicle:
 
-    # region Initialising functions
-    def __init__(self, ego_vehicle=False):
-        #### initialise position and direction ####
+    def __init__(self, ego_vehicle=False, initial_position=(0, 150)):
         self.v_long = 0
         self.v_lat = 0
         self.acc_long = 0
         self.direction = 0
-        self.acc_rate = 11
+        self.acc_rate = 5
         self.friction_rate = 1
         self.turn_rate = 1
-        self.max_v = 100
+        self.max_v = 30  # approximately 70mph
         self.original_image = Image(ego_vehicle)
         self.image = self.original_image.image
         self.offset = self.image.get_rect().center
 
-        self.x = -self.offset[0] + 0
-        self.y = -self.offset[1] + 150
+        self.x = -self.offset[0] + initial_position[0]
+        self.y = -self.offset[1] + initial_position[1]
         self.dt = np.inf
 
-    # endregion
-
+    # region utils
     def move(self):
-
         # move x by vlong*dt *cos(direction)
         # move y by vlong*dt*sin(direction)
         # reduce vlong by friction- which is bigger when faster
         # dt is in milliseconds.
-
         x_addition = self.v_long * self.dt / 1000 * np.cos(np.deg2rad(self.direction))
         self.x += x_addition
         y_addition = self.v_long * self.dt / 1000 * np.sin(np.deg2rad(self.direction))
         self.y -= y_addition
-        friction_scaler = .1
-        if abs(self.v_long) < 5:
-            friction_scaler = 0.15
+        friction_scaler = 1
+        if abs(self.v_long) < 15:
+            friction_scaler = 1.5
         self.v_long -= np.sign(self.v_long) * self.friction_rate * friction_scaler
 
-        if abs(self.v_long) < 10:
+        if abs(self.v_long) < 1:
             self.v_long = 0
 
     def update(self, dt):
@@ -96,6 +99,23 @@ class Vehicle():
         self.image = rotated_image
 
         self.offset = [self.offset[0] + offset[0], self.offset[1] + offset[1]]
+    # endregion
+
+
+def unit_vector(vector):
+    """ Returns the unit vector of the vector.  """
+    mag = np.linalg.norm(vector)
+    if mag == 0:
+        return [0, 0]
+    return vector / mag
+
+
+def angle_between(v1, v2):
+    """ Returns the angle in radians between vectors 'v1' and 'v2'::
+    """
+    v1_u = unit_vector(v1)
+    v2_u = unit_vector(v2)
+    return np.arccos(np.clip(np.dot(v1_u, v2_u), -1.0, 1.0))
 
 
 class EgoVehicle(Vehicle):
@@ -111,9 +131,16 @@ class EgoVehicle(Vehicle):
         self.predicter_fast = Predictions.ConstCurvaturePredicter(self, 5)
 
 
+        ped = Actor()
+        ped.speed=1
+        car = Actor()
+        car.speed=10
+
+        self.actors = [ped, car]  # pedestrians, cars, bicycles, etc
         self.unknown_areas = None
         self.future_path_area = None
-        self.closest_unknown_points=[]
+        self.closest_unknown_points = []
+        self.latency = 0.1  # seconds
 
     def send_message(self, string):
         super().send_message(string)
@@ -132,16 +159,20 @@ class EgoVehicle(Vehicle):
             self.rotate(self.direction)
 
     def draw(self, surface):
-        pos = (self.x - self.offset[0], self.y - self.offset[1])
-        surface.blit(self.image, pos)
-
         self.draw_sensor_rays(surface)
         self.draw_sensor_area(surface)
         self.draw_predicted_motion(surface)
         self.draw_closest_unknown_points(surface)
+        pos = (self.x - self.offset[0], self.y - self.offset[1])
+        surface.blit(self.image, pos)
 
     def draw_closest_unknown_points(self, surface):
         for point in self.closest_unknown_points:
+            angle = self.angle_to_point(point)
+
+            if angle > 90:
+                # pygame.draw.circle(surface, Colours.RED, (point.x, point.y), 5)
+                continue
             pygame.draw.circle(surface, Colours.BLUE, (point.x, point.y), 5)
 
     def draw_sensor_rays(self, surface):
@@ -152,16 +183,17 @@ class EgoVehicle(Vehicle):
         pygame.draw.aalines(surface, Colours.BLACK, True, self.rays)
         for i, geom in enumerate(self.unknown_areas.geoms):
             pygame.draw.polygon(surface, Colours.BLACK, list(geom.exterior.coords))
+            pygame.draw.polygon(surface, Colours.WHITE, list(geom.exterior.coords), 1)
             font = pygame.font.SysFont(None, 24)
             img = font.render(str(i), True, Colours.WHITE)
-            x=geom.centroid.coords.xy
+            x = geom.centroid.coords.xy
             surface.blit(img, (x[0][0], x[1][0]))
 
     def draw_predicted_motion(self, surface):
         for point in self.predictions_slow:
             pygame.draw.circle(surface, Colours.GREEN, (point[0], point[1]), 2)
         if self.future_path_area is not None and not self.future_path_area.is_empty:
-            pygame.draw.polygon(surface, Colours.GREY, list(self.future_path_area.exterior.coords))
+            pygame.draw.polygon(surface, Colours.PURPLE, list(self.future_path_area.exterior.coords))
 
     def update(self, dt):
         super().update(dt)
@@ -175,9 +207,48 @@ class EgoVehicle(Vehicle):
         self.calculate_predicted_motion()
         self.calculate_closest_unknown_points()
 
+        # now we need to calculate the maximum speed for this particular scenario.
+        self.assess_closest_points()
+    #
+    def angle_to_point(self, point):
+        vector_1 = [(point.x - self.x)*np.sign(self.v_long), (point.y - self.y)*np.sign(-self.v_long)]
+        vector_2 = [np.cos(np.deg2rad(self.direction)), np.sin(np.deg2rad(self.direction))]
+        angle = np.rad2deg(angle_between(vector_1, vector_2))
+        return angle
+
+    def pov_distances(self, point, angle):
+        dist = np.sqrt((point.x-self.x)**2 +(point.y-self.y)**2)
+        d_lat = dist*np.sin(np.deg2rad(angle))
+        d_long = dist*np.cos(np.deg2rad(angle))
+        return d_lat, d_long
+
+    def assess_closest_points(self):
+        if self.v_long==0:
+            return
+        for p in self.closest_unknown_points:
+
+            # if it is behind the vehicle's direction of travel, ignore it.
+            angle = self.angle_to_point(p)
+
+            if angle>90:
+                continue
+
+            # find the lateral and longitudinal distance for this point
+            d_lat, d_long = self.pov_distances(p, angle)
+
+            for actor in self.actors:
+                max_v = self.assess_max_speed(d_lat, d_long, actor.speed)
+
+                if max_v < abs(self.v_long):
+                    print(max_v)
+                    self.v_long= np.sign(self.v_long)* max_v
+
+                    # if current speed is higher than maximum speed, need to limit this
+
+
     def calculate_closest_unknown_points(self):
 
-        self.closest_unknown_points=[]
+        self.closest_unknown_points = []
         if self.unknown_areas is None:
             return
         if self.future_path_area is None:
@@ -186,33 +257,35 @@ class EgoVehicle(Vehicle):
         for g in self.unknown_areas.geoms:
             if self.future_path_area.is_empty:
                 return
-            closest_points= nearest_points(g, self.future_path_area)
+
+            closest_points = nearest_points(g, self.future_path_area)
             self.closest_unknown_points.append(closest_points[0])
 
     def calculate_unknown_areas(self):
         covered_area = shapely.geometry.Polygon(self.rays)
         max_area = shapely.geometry.Point((self.x, self.y)).buffer(200)
+        if max_area.is_empty:
+            self.unknown_areas = None
+            return
         self.unknown_areas = max_area.difference(covered_area)
         self.unknown_areas = self.unknown_areas.difference(self.world.obstacles)
 
         if isinstance(self.unknown_areas, shapely.geometry.Polygon):
             self.unknown_areas = shapely.geometry.MultiPolygon([self.unknown_areas])
 
-
         # now get rid of any long sharp thin areas, by taking a negative buffer and intersection
-
-        simple_geoms=[]
+        simple_geoms = []
         d = 1  # distance
 
         for g in self.unknown_areas.geoms:
             g = g.buffer(-d).intersection(g).simplify(d)
-            if g.area>2 :
+            if g.area > 2:
                 if isinstance(g, shapely.geometry.Polygon):
                     g = shapely.geometry.MultiPolygon([g])
                 for geom in g.geoms:
                     simple_geoms.append(geom)
 
-        self.unknown_areas=shapely.geometry.MultiPolygon(simple_geoms)
+        self.unknown_areas = shapely.geometry.MultiPolygon(simple_geoms)
 
     def calculate_predicted_motion(self):
         if len(self.past_positions) != self.past_positions_length:
@@ -220,6 +293,7 @@ class EgoVehicle(Vehicle):
         self.predictions_slow = self.predicter_slow.make_predictions(self.past_positions)
         self.predictions_fast = self.predicter_fast.make_predictions(self.past_positions)
         self.predictions_slow.extend(self.predictions_fast[::-1])
+
         self.future_path_area = shapely.geometry.Polygon(self.predictions_slow).buffer(1, cap_style=CAP_STYLE.flat)
         if not isinstance(self.future_path_area, shapely.geometry.Polygon):
             self.future_path_area = None
@@ -261,3 +335,43 @@ class EgoVehicle(Vehicle):
 
             self.rays.append([target_x, target_y])
             angle -= 360 / number_rays
+
+    def assess_max_speed(self, d_lat, d_long, v_actor):
+
+        # can the actor actually reach us?
+        # if so, can lead to a collision, assess the maximum speed
+        if abs(d_lat / v_actor) < abs(d_long / self.v_long):
+            return np.inf
+
+        # evaluate the worst case angle for an actor to approach the vehicle
+        angle = self.find_worst_case_rel_angle(d_lat, d_long, v_actor)
+        square_dist_to_collision = d_lat ** 2 + d_long ** 2
+        square_rel_vel = v_actor ** 2 + self.v_long ** 2 - 2 * v_actor * self.v_long * np.cos(np.deg2rad(180 - angle))
+        time_to_col = np.sqrt(square_dist_to_collision / square_rel_vel)
+
+        max_v_long = self.acc_rate * (time_to_col - self.latency)
+        return max_v_long
+
+    def find_worst_case_rel_angle(self, d_lat, d_long, v_actor):
+        x = d_lat / d_long
+        v_ratio = self.v_long / v_actor
+        A = 0.5 * (-v_ratio - np.sqrt(2 * v_ratio ** 2 * (1 - 2 * x)))
+        angle = np.arccos(A)
+        return np.rad2deg(angle)
+
+
+class NormalVehicle(Vehicle):
+    def __init__(self, starting_position=(0, 150), starting_direction=90):
+        super(NormalVehicle, self).__init__()
+        self.x = starting_position[0]
+        self.y = starting_position[1]
+
+        self.waypoints = []
+        self.current_target = None
+        self.rotate(starting_direction)
+        self.direction = starting_direction
+
+    def update(self, dt):
+        self.dt = dt
+        self.accelerate(self.acc_rate)
+        self.move()

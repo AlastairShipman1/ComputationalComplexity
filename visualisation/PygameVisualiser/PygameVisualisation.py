@@ -16,15 +16,12 @@ class Visualisation:
 
         pygame.init()
         self.size = 1500, 750
-        self.world = World()
-
-        # now that the size has been appropriately set, we can move onto setting up the surfaces
         self.screen = pygame.display.set_mode(self.size)
-        self.bg = pygame.image.load(config.input_image_file_path + 'citymap.png')
-        self.bg = pygame.transform.smoothscale(self.bg, self.size)
-        self.screen.blit(self.bg, (0, 0))
         self.is_paused = False
         self.clock = pygame.time.Clock()
+
+        self.world = World(self)
+
 
         if config.recording:
             self.recorder = ScreenRecorder(self.size[0], self.size[1], 10)
@@ -38,7 +35,6 @@ class Visualisation:
                 finished = self.handle_events(event)
             if finished:
                 break
-
 
             self.run_single_frame()
             if config.recording:
@@ -71,8 +67,6 @@ class Visualisation:
         if keys[pygame.K_RIGHT]:
             self.world.ego_vehicle.send_message("r")
 
-        self.screen.blit(self.bg, (0, 0))
-
         self.update_world(dt)
         self.draw_world()
 
@@ -94,16 +88,13 @@ class Visualisation:
     # region Draw functions
 
     def update_world(self, dt):
-        for agent in self.world.pygame_agents:
-            agent.update(dt)
+        self.world.update(dt)
 
     def draw_world(self):
         """draw the agents here"""
-        for obs in self.world.obstacles.geoms:
-            polygon_coords = list(obs.exterior.coords)
-            pygame.draw.polygon(self.screen, Colours.RED, polygon_coords)
+
+        self.world.draw(self.screen)
         for agent in self.world.pygame_agents:
             agent.draw(self.screen)
-
 
     # endregion
