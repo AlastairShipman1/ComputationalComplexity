@@ -8,7 +8,7 @@ class ScreenRecorder:
         This class is used to record a PyGame surface and save it to a video file.
     """
 
-    def __init__(self, width, height, fps, out_file=config.output_video_file_path+"/output.avi"):
+    def __init__(self, width, height, fps, out_file=config.output_video_file_path+"/output.mp4"):
         """
         Initialize the recorder with parameters of the surface.
         :param width: Width of the surface to capture

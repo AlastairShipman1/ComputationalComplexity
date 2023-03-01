@@ -16,7 +16,8 @@ Units in metric
 
 class Actor:
     def __init__(self):
-        self.speed =1
+        self.speed = 1
+
 
 class Image(pygame.sprite.Sprite):
     def __init__(self, ego_vehicle=False):
@@ -130,17 +131,18 @@ class EgoVehicle(Vehicle):
         self.predicter_slow = Predictions.ConstCurvaturePredicter(self, self.past_positions_length)
         self.predicter_fast = Predictions.ConstCurvaturePredicter(self, 5)
 
-
         ped = Actor()
-        ped.speed=1
+        ped.speed = 1
         car = Actor()
-        car.speed=10
+        car.speed = 100
 
         self.actors = [ped, car]  # pedestrians, cars, bicycles, etc
         self.unknown_areas = None
         self.future_path_area = None
         self.closest_unknown_points = []
-        self.latency = 0.1  # seconds
+        self.latency = 1  # seconds
+        self.is_limiting_speed = False
+        self.limiting_point = None
 
     def send_message(self, string):
         super().send_message(string)
@@ -163,6 +165,8 @@ class EgoVehicle(Vehicle):
         self.draw_sensor_area(surface)
         self.draw_predicted_motion(surface)
         self.draw_closest_unknown_points(surface)
+        if self.is_limiting_speed and self.limiting_point is not None:
+            pygame.draw.circle(surface, Colours.GREEN, (self.limiting_point.x, self.limiting_point.y), 10)
         pos = (self.x - self.offset[0], self.y - self.offset[1])
         surface.blit(self.image, pos)
 
@@ -209,28 +213,30 @@ class EgoVehicle(Vehicle):
 
         # now we need to calculate the maximum speed for this particular scenario.
         self.assess_closest_points()
-    #
+
     def angle_to_point(self, point):
-        vector_1 = [(point.x - self.x)*np.sign(self.v_long), (point.y - self.y)*np.sign(-self.v_long)]
+        vector_1 = [(point.x - self.x) * np.sign(self.v_long), (point.y - self.y) * np.sign(-self.v_long)]
         vector_2 = [np.cos(np.deg2rad(self.direction)), np.sin(np.deg2rad(self.direction))]
         angle = np.rad2deg(angle_between(vector_1, vector_2))
         return angle
 
     def pov_distances(self, point, angle):
-        dist = np.sqrt((point.x-self.x)**2 +(point.y-self.y)**2)
-        d_lat = dist*np.sin(np.deg2rad(angle))
-        d_long = dist*np.cos(np.deg2rad(angle))
+        dist = np.sqrt((point.x - self.x) ** 2 + (point.y - self.y) ** 2)
+        d_lat = dist * np.sin(np.deg2rad(angle))
+        d_long = dist * np.cos(np.deg2rad(angle))
         return d_lat, d_long
 
     def assess_closest_points(self):
-        if self.v_long==0:
+        self.is_limiting_speed=False
+        if self.v_long == 0:
             return
+
         for p in self.closest_unknown_points:
 
             # if it is behind the vehicle's direction of travel, ignore it.
             angle = self.angle_to_point(p)
 
-            if angle>90:
+            if angle > 90:
                 continue
 
             # find the lateral and longitudinal distance for this point
@@ -238,12 +244,12 @@ class EgoVehicle(Vehicle):
 
             for actor in self.actors:
                 max_v = self.assess_max_speed(d_lat, d_long, actor.speed)
-
-                if max_v < abs(self.v_long):
-                    self.v_long= np.sign(self.v_long)* max_v
-
+                if max_v < abs(self.max_v):
+                    self.is_limiting_speed = True
+                    self.limiting_point = p
+                    if abs(self.v_long) > max_v:
+                        self.v_long = np.sign(self.v_long) * max_v
                     # if current speed is higher than maximum speed, need to limit this
-
 
     def calculate_closest_unknown_points(self):
 
@@ -272,12 +278,14 @@ class EgoVehicle(Vehicle):
         if isinstance(self.unknown_areas, shapely.geometry.Polygon):
             self.unknown_areas = shapely.geometry.MultiPolygon([self.unknown_areas])
 
-        # now get rid of any long sharp thin areas, by taking a negative buffer and intersection
         simple_geoms = []
         d = 1  # distance
 
         for g in self.unknown_areas.geoms:
-            g = g.buffer(-d).intersection(g).simplify(d)
+
+            # now get rid of any long sharp thin areas, by taking a negative buffer and intersection
+            # this might be a bit of an issue?
+            # g = g.buffer(-d).intersection(g).simplify(d)
             if g.area > 2:
                 if isinstance(g, shapely.geometry.Polygon):
                     g = shapely.geometry.MultiPolygon([g])
@@ -343,7 +351,7 @@ class EgoVehicle(Vehicle):
             return np.inf
 
         # evaluate the worst case angle for an actor to approach the vehicle
-        angle_1= self.find_worst_case_rel_angle(d_lat, d_long, v_actor)
+        angle_1 = self.find_worst_case_rel_angle(d_lat, d_long, v_actor)
         angle = np.rad2deg(angle_1)
         square_dist_to_collision = d_lat ** 2 + d_long ** 2
         square_rel_vel = v_actor ** 2 + self.v_long ** 2 - 2 * v_actor * self.v_long * np.cos(np.deg2rad(180 - angle))
@@ -357,14 +365,14 @@ class EgoVehicle(Vehicle):
         v_ratio = self.v_long / v_actor
 
         # see powerpoint for a derivation of these values
-        a=2
-        b=2 * v_ratio
-        c= (x*v_ratio)**2-1
+        a = 2
+        b = 2 * v_ratio
+        c = (x * v_ratio) ** 2 - 1
 
-        A= -b+np.sqrt(b**2-4*a*c)
+        A = -b + np.sqrt(b ** 2 - 4 * a * c)
         angle_1 = np.arccos(A)
-        B=-b-np.sqrt(b**2-4*a*c)
-        angle_2=np.arccos(B)
+        B = -b - np.sqrt(b ** 2 - 4 * a * c)
+        angle_2 = np.arccos(B)
 
         return np.nanmin([angle_2, angle_1])
 

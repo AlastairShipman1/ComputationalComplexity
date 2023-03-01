@@ -24,7 +24,7 @@ class Visualisation:
 
 
         if config.recording:
-            self.recorder = ScreenRecorder(self.size[0], self.size[1], 10)
+            self.recorder = ScreenRecorder(self.size[0], self.size[1], config.simulation_fps)
 
     # region Game logic
     def run(self):
@@ -52,7 +52,7 @@ class Visualisation:
         sys.exit()
 
     def run_single_frame(self):
-        dt = self.clock.tick(60)
+        dt = self.clock.tick(config.simulation_fps)
         if self.is_paused:
             return
 

@@ -18,6 +18,7 @@ class World():
             self.size = visualiser.size
         else:
             self.size = (100, 100)
+        self.visualiser=visualiser
 
         build_1_path = config.input_image_file_path + 'Building_topdown_1.png'
         build_2_path = config.input_image_file_path + 'Building_topdown_2.png'
@@ -26,9 +27,9 @@ class World():
         build_paths = [build_1_path, build_2_path, build_3_path]
         poss_rotations = [0, 90, 180, 270]
 
-        num_buildings = 12
-        num_rows = 3
-        num_cols = int(num_buildings / num_rows) + 1
+        num_buildings = 1
+        num_rows = 1
+        num_cols = int(num_buildings / num_rows)
         self.obstacles = []
         self.obstacle_locations = []
         self.obstacle_images = []

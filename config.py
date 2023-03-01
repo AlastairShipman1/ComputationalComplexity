@@ -2,7 +2,9 @@ import os
 
 
 project_path = os.path.dirname(os.path.realpath(__file__))
-recording =False
+recording = True
+
+simulation_fps = 40
 
 input_file_path = f"{project_path}/input_data"
 output_file_path = f"{project_path}/output_data"
