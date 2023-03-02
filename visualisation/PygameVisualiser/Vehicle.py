@@ -81,6 +81,17 @@ class Vehicle:
         pos = (self.x - self.offset[0], self.y - self.offset[1])
         surface.blit(self.image, pos)
 
+        # self.x = self.standardised_actual_trajectory[timestamp][0]
+        # self.y = self.standardised_actual_trajectory[timestamp][1]
+        #
+        # # this is to centre the agent image.
+        # image_x = self.x * self.draw_scale * self.monitor_size[0] \
+        #           - self.image_w / 2 + self.draw_offset[0]
+        # image_y = self.y * self.draw_scale * self.monitor_size[1] \
+        #           - self.image_h / 2 + self.draw_offset[1]
+        # surface.blit(self.image, (image_x, image_y))
+
+
     def send_message(self, string):
         ...
 
@@ -101,7 +112,49 @@ class Vehicle:
 
         self.offset = [self.offset[0] + offset[0], self.offset[1] + offset[1]]
     # endregion
+    def update_offset(self, offset):
+        self.draw_offset = offset
 
+    def update_scale(self, scale, sc):
+        self.draw_scale = scale
+        self.model_agent_size_pixels *= sc
+        self.model_display_scale *= sc
+
+        self._create_original_image()
+        self._create_image_instance()
+    def create_sprites(self):
+        centre_point = self.original_shape.centroid
+        self.original_shape = shapely.affinity.translate(self.original_shape, -centre_point.x, -centre_point.y)
+
+        # create the original, based on the scale, a base image that you can return to.
+        self._create_original_image()
+        # create first instance of the image that will actually be drawn
+        self._create_image_instance()
+
+    def _create_original_image(self):
+        # recentre the agent shape
+        self.shape = shapely.affinity.scale(self.original_shape, self.model_display_scale, self.model_display_scale)
+
+        self.original_image = pygame.Surface((2 * self.model_agent_size_pixels, 2 * self.model_agent_size_pixels),
+                                             pygame.SRCALPHA, 32)
+        self.shape = shapely.affinity.translate(self.shape, self.model_agent_size_pixels, self.model_agent_size_pixels)
+        self.polygon_coords = list(self.shape.exterior.coords)
+        pygame.draw.polygon(self.original_image, self.colour, self.polygon_coords, 1)
+
+    def _create_image_instance(self):
+        self.image = pygame.Surface((2 * self.model_agent_size_pixels, 2 * self.model_agent_size_pixels),
+                                    pygame.SRCALPHA, 32)
+        pygame.draw.polygon(self.image, self.colour, self.polygon_coords, 1)
+        self.image_w, self.image_h = self.image.get_size()
+
+    def set_image_scale(self):
+        pixels_per_metre_x = self.monitor_size[0] / (self.extremes["max_x"] - self.extremes["min_x"])
+        pixels_per_metre_y = self.monitor_size[1] / (self.extremes["max_y"] - self.extremes["min_y"])
+
+        size_of_agent_in_metres = self.model_agent_size_metres
+        size_of_agent_in_pixels = int(size_of_agent_in_metres * pixels_per_metre_x)
+        self.model_agent_size_pixels = size_of_agent_in_pixels
+        self.model_display_scale = self.model_agent_size_pixels / self.model_agent_size_metres
 
 def unit_vector(vector):
     """ Returns the unit vector of the vector.  """
@@ -166,7 +219,7 @@ class EgoVehicle(Vehicle):
         self.draw_predicted_motion(surface)
         self.draw_closest_unknown_points(surface)
         if self.is_limiting_speed and self.limiting_point is not None:
-            pygame.draw.circle(surface, Colours.GREEN, (self.limiting_point.x, self.limiting_point.y), 10)
+            pygame.draw.circle(surface, Colours.RED, (self.limiting_point.x, self.limiting_point.y), 10)
         pos = (self.x - self.offset[0], self.y - self.offset[1])
         surface.blit(self.image, pos)
 
@@ -244,11 +297,10 @@ class EgoVehicle(Vehicle):
 
             for actor in self.actors:
                 max_v = self.assess_max_speed(d_lat, d_long, actor.speed)
-                if max_v < abs(self.max_v):
+                if max_v < abs(self.v_long):
                     self.is_limiting_speed = True
                     self.limiting_point = p
-                    if abs(self.v_long) > max_v:
-                        self.v_long = np.sign(self.v_long) * max_v
+                    self.v_long = np.sign(self.v_long) * max_v
                     # if current speed is higher than maximum speed, need to limit this
 
     def calculate_closest_unknown_points(self):
@@ -332,7 +384,6 @@ class EgoVehicle(Vehicle):
                         p = shapely.geometry.MultiPoint([p])
 
                     for point in list(p.geoms):
-                        # pygame.draw.circle(surface, Colours.BLUE, (point.x, point.y), 4)
                         temp_target_x, temp_target_y = point.x, point.y
                         temp_dist = (self.x - temp_target_x) ** 2 + (self.y - temp_target_y) ** 2
                         if temp_dist < curr_dist:

@@ -15,9 +15,9 @@ Units should be in metric, including metres
 class World():
     def __init__(self, visualiser=None):
         if visualiser is not None:
-            self.size = visualiser.size
+            self.initial_size = visualiser.initial_size
         else:
-            self.size = (100, 100)
+            self.initial_size = (1000, 1000)
         self.visualiser=visualiser
 
         build_1_path = config.input_image_file_path + 'Building_topdown_1.png'
@@ -27,7 +27,7 @@ class World():
         build_paths = [build_1_path, build_2_path, build_3_path]
         poss_rotations = [0, 90, 180, 270]
 
-        num_buildings = 1
+        num_buildings = 2
         num_rows = 1
         num_cols = int(num_buildings / num_rows)
         self.obstacles = []
@@ -62,6 +62,11 @@ class World():
 
         self.pygame_agents.append(self.ego_vehicle)
 
+    def update_offset(self):
+        ...
+
+    def update_scale(self):
+        ...
 
     def draw(self, surface):
         surface.fill(Colours.GREY)
@@ -72,4 +77,4 @@ class World():
         for agent in self.pygame_agents:
             agent.update(dt)
             if(agent.y<0):
-                agent.y=self.size[1]
+                agent.y=self.initial_size[1]
