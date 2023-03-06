@@ -89,19 +89,17 @@ class Visualisation:
                 delta_x = current_pos[0] - self.previous_pos[0]
                 delta_y = current_pos[1] - self.previous_pos[1]
                 self.offset = self.offset[0] + delta_x, self.offset[1] + delta_y
-                for agent in self.world.pygame_agents:
-                    agent.update_offset(self.offset)
+                self.world.update_offset(self.offset)
             self.previous_pos = current_pos
 
         elif event.type == pygame.MOUSEWHEEL:
             multiplier = -np.sign(event.y)
             sc = 1 / (1.025 + multiplier * 0.225)  # cycle between 25% increase, and 80% decrease in zoom.
             self.zoom *= sc
-            size = (int(self.initial_size[0] * self.zoom), int(self.initial_size[1] * self.zoom))
             self.offset = self.offset[0] * sc, self.offset[1] * sc
-            for agent in self.world.pygame_agents:
-                agent.update_scale(self.zoom, sc)
-                agent.update_offset(self.offset)
+            self.world.update_scale(self.zoom)
+            self.world.update_offset(self.offset)
+
 
         return False
 
@@ -121,9 +119,7 @@ class Visualisation:
 
     def draw_world(self):
         """draw the agents here"""
-
         self.world.draw(self.screen)
-        for agent in self.world.pygame_agents:
-            agent.draw(self.screen)
+
 
     # endregion

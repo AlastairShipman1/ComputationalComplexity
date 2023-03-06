@@ -42,16 +42,16 @@ class ConstCurvaturePredicter():
             angular_velocity = self.get_angular_velocity_between_two_points(self.circle_centre, self.previous_points[2][:-1],
                                                                             self.previous_points[0][:-1], self.averaging_time_window)
             d_theta = -angular_velocity * i * self.prediction_time_jump
-            rel_x = self.vehicle.x - self.circle_centre[0]
-            rel_y = self.vehicle.y - self.circle_centre[1]
+            rel_x = self.vehicle.world_x - self.circle_centre[0]
+            rel_y = self.vehicle.world_y - self.circle_centre[1]
 
             agent_circle_rotated_pos = [rel_x * np.cos(d_theta) + rel_y * np.sin(d_theta),
                                         -rel_x * np.sin(d_theta) + rel_y * np.cos(d_theta)]
             post_rotated_pos = [agent_circle_rotated_pos[0] + self.circle_centre[0],
                                 agent_circle_rotated_pos[1] + self.circle_centre[1]]
 
-            x_addition = post_rotated_pos[0] - self.vehicle.x
-            y_addition = post_rotated_pos[1] - self.vehicle.y
+            x_addition = post_rotated_pos[0] - self.vehicle.world_x
+            y_addition = post_rotated_pos[1] - self.vehicle.world_y
 
         else:
             # longitudinal components
@@ -61,8 +61,8 @@ class ConstCurvaturePredicter():
             x_addition = self.prediction_time_jump *i * longitudinal_velocity * np.cos(np.deg2rad(self.vehicle.direction))
             y_addition = - self.prediction_time_jump *i* longitudinal_velocity * np.sin(np.deg2rad(self.vehicle.direction))
 
-        predicted_x = self.vehicle.x + x_addition
-        predicted_y = self.vehicle.y + y_addition
+        predicted_x = self.vehicle.world_x + x_addition
+        predicted_y = self.vehicle.world_y + y_addition
         return [predicted_x, predicted_y]
 
     def get_longitudinal_velocity_between_two_points(self, point1, point2, time_window):
