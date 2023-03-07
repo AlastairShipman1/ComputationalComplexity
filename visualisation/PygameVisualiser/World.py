@@ -60,7 +60,7 @@ class World():
                 v = NormalVehicle(starting_position=(x - rect[2] / 2, y * 2.5))
                 self.pygame_agents.append(v)
 
-                x += scaled_image.get_width() + 10
+                x += scaled_image.get_width()+1000
 
         self.obstacles = shapely.geometry.MultiPolygon(self.obstacles)
         self.ego_vehicle = EgoVehicle(self)

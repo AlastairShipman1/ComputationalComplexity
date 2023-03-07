@@ -118,11 +118,10 @@ class Vehicle:
 
     def rotate(self, angle_increment_radians):
         self.direction += angle_increment_radians
-        if self.direction <0:
-            self.direction += 2*np.pi
-        if abs(self.direction) > 2*np.pi:
-            self.direction= self.direction%(2*np.pi)
-
+        if self.direction < 0:
+            self.direction += 2 * np.pi
+        if abs(self.direction) > 2 * np.pi:
+            self.direction = self.direction % (2 * np.pi)
 
         self._create_image_instance()
 
@@ -134,7 +133,6 @@ class Vehicle:
 
         self.image = rotated_image
         self.image_offset = [self.image_offset[0] + offset[0], self.image_offset[1] + offset[1]]
-
 
     # endregion
     def update_offset(self, offset):
@@ -261,8 +259,8 @@ class EgoVehicle(Vehicle):
             surface.blit(img, self.convert_world_to_draw_coords([x[0][0], x[1][0]]))
 
     def draw_predicted_motion(self, surface):
-        for point in self.predictions_slow:
-            pygame.draw.circle(surface, Colours.GREEN, self.convert_world_to_draw_coords(point), 2)
+        # for point in self.predictions_slow:
+        #     pygame.draw.circle(surface, Colours.GREEN, self.convert_world_to_draw_coords(point), 2)
         if self.future_path_area is not None and not self.future_path_area.is_empty:
             coords = [self.convert_world_to_draw_coords([x, y])
                       for x, y in list(self.future_path_area.exterior.coords)]
@@ -283,10 +281,9 @@ class EgoVehicle(Vehicle):
         self.assess_closest_points()
 
     def angle_to_point(self, point):
-        vector_1 = [(point[0] - self.world_x), (point[1] - self.world_y) ]
-        direction_x = (1-np.sign(self.v_long))*0.5*np.pi+ self.direction
-        direction_y = (np.sign(self.v_long))*np.pi+ self.direction
-        vector_2 = [np.cos(direction_x), np.sin(direction_y)]
+        vector_1 = [(point[0] - self.world_x), (point[1] - self.world_y)]
+        direction = (1 - np.sign(self.v_long)) * 0.5 * np.pi + self.direction
+        vector_2 = [np.cos(direction), np.sin(-direction)]
         angle = angle_between(vector_1, vector_2)
 
         return angle
@@ -302,39 +299,40 @@ class EgoVehicle(Vehicle):
         self.collision_points_from_vehicle = []
         self.is_limiting_speed = False
         self.time_to_col = np.inf
-        # if self.v_long == 0:
-        #     return
+        vehicle_forward_point = [
+            self.world_x + 10 * np.sign(self.v_long) * self.v_long * np.cos(self.direction),
+            self.world_y - 10 * np.sign(self.v_long) * self.v_long * np.sin(self.direction)]
 
         for p in self.closest_unknown_points:
+            # find the angle, lateral and longitudinal distances for this point
+            # d_lat and angle are positive if the point is to the left of the vehicle, negative to the right
+            # this is consistent, even if driving backwards
 
-            # if it is behind the vehicle's direction of travel, ignore it.
             angle = self.angle_to_point(p)
-            # find the lateral and longitudinal distance for this point
+            if not isLeft([self.world_x, self.world_y], vehicle_forward_point, p):
+                angle = angle - np.pi / 2
             d_lat, d_long = self.pov_distances(p, angle)
 
             for actor in self.actors:
+                # at the moment it only works when driving forward, with the point on the left hand side
+                # TODO: i'm fairly certain the issue is here.
+                #  the min value is correct- maybe the find_worst_case_rel_angle function is wrong?
+                #  if not, it's what we do with that rel_worst_case_angle to turn it into world worst case
+                rel_worst_case_angle = min(self.find_worst_case_rel_angle(d_lat, d_long, actor.speed)) * np.sign(angle)
+                world_worst_case_angle = (rel_worst_case_angle + np.pi + self.direction) \
+                                             % (2 * np.pi)  # to make it world direction, and not relative
 
-                # can the actor actually reach us?
-                # if so, can lead to a collision, assess the maximum speed
-                # if abs(d_lat / v_actor) < abs(d_long / self.v_long):
-                #     return np.inf
-                worst_case_rel_angle_1, worst_case_rel_angle_2=self.find_worst_case_rel_angle(d_lat, d_long, actor.speed)
-
-                world_worst_case_angle_1 = worst_case_rel_angle_1 + np.pi + self.direction  # to make it world direction, and not relative
-                world_worst_case_angle_2 = worst_case_rel_angle_2 + np.pi + self.direction  # to make it world direction, and not relative
-                rel_dist = np.sqrt(d_lat ** 2 + d_long ** 2)
-                rel_vel = np.sqrt(actor.speed ** 2 + self.v_long ** 2 \
-                                  - (2 * actor.speed * np.sign(self.v_long)* self.v_long * np.cos(np.pi - worst_case_rel_angle_1)))
+                rel_dist = np.sqrt((p[0] - self.world_x) ** 2 + (p[1] - self.world_y) ** 2)
+                rel_vel = np.sqrt(
+                    actor.speed ** 2 +
+                    self.v_long ** 2 -
+                    (2 * actor.speed * abs(self.v_long) * np.cos(np.pi - abs(rel_worst_case_angle))))
 
                 time_to_col = rel_dist / rel_vel
 
                 vehicle_collision_point = [
-                    self.world_x + time_to_col *np.sign(self.v_long)* self.v_long * np.cos(self.direction),
-                    self.world_y - time_to_col *np.sign(self.v_long)* self.v_long * np.sin(self.direction)]
-
-                world_worst_case_angle = world_worst_case_angle_1
-                if not isLeft([self.world_x, self.world_y], vehicle_collision_point, p):
-                    world_worst_case_angle=world_worst_case_angle_1 +np.pi/2
+                    self.world_x + time_to_col * self.v_long * np.cos(self.direction),
+                    self.world_y - time_to_col * self.v_long * np.sin(self.direction)]
 
                 actor_collision_point = [
                     p[0] + time_to_col * actor.speed * np.cos(world_worst_case_angle),
@@ -343,13 +341,7 @@ class EgoVehicle(Vehicle):
                 self.collision_points_from_vehicle.append(vehicle_collision_point)
                 self.collision_points_from_actor.append(actor_collision_point)
 
-                # max_v_long = self.acc_rate * (time_to_col - self.latency)
-                # if max_v_long < abs(self.v_long):
-                #     self.is_limiting_speed = True
-                #     self.limiting_point = p
-                #     self.v_long -= np.sign(self.v_long) * self.acc_rate
 
-                # if max speed is lower than actual speed, need to limit this
 
     def calculate_closest_unknown_points(self):
 
@@ -369,8 +361,7 @@ class EgoVehicle(Vehicle):
             for pt in pts:
                 angle = self.angle_to_point(pt)
                 #
-                if angle > np.pi / 2:
-
+                if abs(angle) > np.pi / 2:
                     # pygame.draw.circle(surface, Colours.RED, (point.x, point.y), 5)
                     continue
                 dist = (pt[0] - self.world_x) ** 2 + (pt[1] - self.world_y) ** 2
@@ -426,7 +417,7 @@ class EgoVehicle(Vehicle):
         self.ray_endpoints = []
         depth = 200
         angle = self.direction
-        number_rays = 100
+        number_rays = 500
         for i in range(number_rays):
             # create a line between the car and the max length
             # cycle through all obstacles
@@ -455,8 +446,8 @@ class EgoVehicle(Vehicle):
             angle -= (np.pi * 2) / number_rays
 
     def find_worst_case_rel_angle(self, d_lat, d_long, v_actor):
-        x = d_lat / d_long
-        y = self.v_long / v_actor
+        x = abs(d_lat) / d_long
+        y = abs(self.v_long) / v_actor
 
         # see powerpoint for a derivation of these values
         a = (x ** 2) + 1
@@ -474,7 +465,6 @@ class EgoVehicle(Vehicle):
             angle_1 = np.arccos(A)
         if abs(B) <= 1:
             angle_2 = np.arccos(B)
-
         if not np.isfinite(angle_1) and not np.isfinite(angle_2):
             return np.nan, np.nan
 
@@ -484,7 +474,7 @@ class EgoVehicle(Vehicle):
 class NormalVehicle(Vehicle):
     def __init__(self, starting_position=(0, 150), starting_direction_degrees=90):
         super().__init__(image_path=None, initial_position=starting_position,
-                                            starting_direction_degrees=starting_direction_degrees)
+                         starting_direction_degrees=starting_direction_degrees)
 
     def update(self, dt):
         self.accelerate(self.acc_rate)
