@@ -1,5 +1,7 @@
 import numpy as np
-
+'''
+angle units in radians
+'''
 
 class ConstCurvaturePredicter():
     def __init__(self, vehicle, length_of_prediction_set):
@@ -58,8 +60,8 @@ class ConstCurvaturePredicter():
             longitudinal_velocity = self.vehicle.v_long
             #.get_longitudinal_velocity_between_two_points(self.previous_points[2],self.previous_points[0],self.averaging_time_window)
 
-            x_addition = self.prediction_time_jump *i * longitudinal_velocity * np.cos(np.deg2rad(self.vehicle.direction))
-            y_addition = - self.prediction_time_jump *i* longitudinal_velocity * np.sin(np.deg2rad(self.vehicle.direction))
+            x_addition = self.prediction_time_jump *i * longitudinal_velocity * np.cos(self.vehicle.direction)
+            y_addition = - self.prediction_time_jump *i* longitudinal_velocity * np.sin(self.vehicle.direction)
 
         predicted_x = self.vehicle.world_x + x_addition
         predicted_y = self.vehicle.world_y + y_addition

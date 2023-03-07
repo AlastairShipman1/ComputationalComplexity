@@ -11,7 +11,12 @@ from shapely.geometry import LineString
 """ 
 File for agents
 Units in metric
+angular units in radians, varying 0->2pi
 """
+
+
+def isLeft(a, b, c):
+    return ((b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0])) < 0
 
 
 def unit_vector(vector):
@@ -32,16 +37,28 @@ def angle_between(v1, v2):
 
 class Actor:
     def __init__(self):
-        self.speed = 1
+        self.speed = 30
 
 
 class Vehicle:
 
-    def __init__(self, ego_vehicle=False, initial_position=(0, 150), starting_direction=0):
+    def __init__(self, image_path=None, initial_position=(0, 150), starting_direction_degrees=0):
+
+        # game variables
+        self.v_long = 0
+        self.v_lat = 0
+        self.acc_long = 0
+        self.direction = np.deg2rad(starting_direction_degrees)
+        self.acc_rate = 5
+        self.friction_rate = 1
+        self.turn_rate = 0.05
+        self.max_v = 30  # 30 is approximately 70mph
+        self.dt = np.inf
+
         # drawing/visualisation variables
-        self.image_path = config.input_image_file_path + '/blue_car_top_down.png'
-        if ego_vehicle:
-            self.image_path = config.input_image_file_path + '/red_car_top_down.png'
+        self.image_path = image_path
+        if image_path is None:
+            self.image_path = config.input_image_file_path + '/blue_car_top_down.png'
 
         self.actual_vehicle_size = [6, 3]
         self.pixel_to_size_ratio = 1
@@ -51,26 +68,15 @@ class Vehicle:
         self.original_image = pygame.image.load(self.image_path)
         self.original_image = pygame.transform.rotate(self.original_image, 180)
         self.image = pygame.transform.smoothscale(self.original_image, self.draw_size)
-        self.rotate(starting_direction)
+        self.rotate(np.deg2rad(starting_direction_degrees))
 
         self.image_offset = self.image.get_rect().center
         self.draw_offset = 0, 0
         self.draw_scale = 1
-
-        # game variables
-        self.v_long = 0
-        self.v_lat = 0
-        self.acc_long = 0
-        self.direction = starting_direction
-        self.acc_rate = 5
-        self.friction_rate = 1
-        self.turn_rate = 1
-        self.max_v = 10  # 30 is approximately 70mph
         self.world_x = -self.image_offset[0] + initial_position[0]
         self.world_y = -self.image_offset[1] + initial_position[1]
         self.draw_x = self.world_x
         self.draw_y = self.world_y
-        self.dt = np.inf
 
     # region utils
     def move(self):
@@ -78,9 +84,9 @@ class Vehicle:
         # move y by vlong*dt*sin(direction)
         # reduce vlong by friction- which is bigger when faster
         # dt is in milliseconds.
-        x_addition = self.v_long * self.dt / 1000 * np.cos(np.deg2rad(self.direction))
+        x_addition = self.v_long * self.dt / 1000 * np.cos(self.direction)
         self.world_x += x_addition
-        y_addition = self.v_long * self.dt / 1000 * np.sin(np.deg2rad(self.direction))
+        y_addition = self.v_long * self.dt / 1000 * np.sin(self.direction)
         self.world_y -= y_addition
         friction_scaler = 1
         if abs(self.v_long) < 15:
@@ -97,12 +103,7 @@ class Vehicle:
 
     def draw(self, surface):
         ##### draw agent on surface#########
-        # image_x = self.x * self.draw_scale * self.monitor_size[0] \
-        #           - self.image.get_width() / 2 + self.draw_offset[0]
-        # image_y = self.y * self.draw_scale * self.monitor_size[1] \
-        #           - self.image.get_height() / 2 + self.draw_offset[1]
         pos = (self.draw_x - self.image_offset[0], self.draw_y - self.image_offset[1])
-
         surface.blit(self.image, pos)
 
     def send_message(self, string):
@@ -115,16 +116,25 @@ class Vehicle:
         self.acc_long = (v_long - self.v_long) / self.dt
         self.v_long = v_long
 
-    def rotate(self, angle):
-        self._create_image_instance()
-        previous_image_center = self.image.get_rect().center
-        rotated_image = pygame.transform.rotate(self.image, angle)
+    def rotate(self, angle_increment_radians):
+        self.direction += angle_increment_radians
+        if self.direction <0:
+            self.direction += 2*np.pi
+        if abs(self.direction) > 2*np.pi:
+            self.direction= self.direction%(2*np.pi)
 
+
+        self._create_image_instance()
+
+        previous_image_center = self.image.get_rect().center
+        rotated_image = pygame.transform.rotate(self.image, np.rad2deg(self.direction))
         rotated_image_center = rotated_image.get_rect().center
         offset = [rotated_image_center[0] - previous_image_center[0],
                   rotated_image_center[1] - previous_image_center[1]]
+
         self.image = rotated_image
         self.image_offset = [self.image_offset[0] + offset[0], self.image_offset[1] + offset[1]]
+
 
     # endregion
     def update_offset(self, offset):
@@ -149,7 +159,8 @@ class Vehicle:
 
 class EgoVehicle(Vehicle):
     def __init__(self, world):
-        super().__init__(ego_vehicle=True)
+        image_path = config.input_image_file_path + '/red_car_top_down.png'
+        super().__init__(image_path=image_path)
 
         self.time_to_col = np.inf
         self.predictions_fast = []
@@ -162,7 +173,6 @@ class EgoVehicle(Vehicle):
         self.predicter_fast = Predictions.ConstCurvaturePredicter(self, 5)
 
         car = Actor()
-        car.speed = 10
 
         self.ray_length = 200  # in metres
         self.actors = [car]  # pedestrians, cars, bicycles, etc
@@ -185,12 +195,12 @@ class EgoVehicle(Vehicle):
             self.accelerate(-self.acc_rate)
 
         if string == "l":
-            self.direction += np.sign(self.v_long) * self.turn_rate
-            self.rotate(self.direction)
+            direction_increment = np.sign(self.v_long) * self.turn_rate
+            self.rotate(direction_increment)
 
         if string == "r":
-            self.direction -= np.sign(self.v_long) * self.turn_rate
-            self.rotate(self.direction)
+            direction_increment = np.sign(-self.v_long) * self.turn_rate
+            self.rotate(direction_increment)
 
     def draw(self, surface):
         self.draw_sensor_rays(surface)
@@ -224,11 +234,9 @@ class EgoVehicle(Vehicle):
         for point in self.closest_unknown_points:
             angle = self.angle_to_point(point)
 
-            if angle > 90:
-                # pygame.draw.circle(surface, Colours.RED, (point.x, point.y), 5)
+            if angle > np.pi / 2:
                 continue
             pt = self.convert_world_to_draw_coords([point[0], point[1]])
-
             pygame.draw.circle(surface, Colours.BLUE, pt, 5)
 
     def draw_sensor_rays(self, surface):
@@ -262,7 +270,6 @@ class EgoVehicle(Vehicle):
 
     def update(self, dt):
         super().update(dt)
-
         self.past_positions.append([self.world_x, self.world_y, self.dt])
         if len(self.past_positions) > self.past_positions_length - 1:
             self.past_positions = self.past_positions[-self.past_positions_length:]
@@ -276,15 +283,18 @@ class EgoVehicle(Vehicle):
         self.assess_closest_points()
 
     def angle_to_point(self, point):
-        vector_1 = [(point[0] - self.world_x) * np.sign(self.v_long), (point[1] - self.world_y) * np.sign(-self.v_long)]
-        vector_2 = [np.cos(np.deg2rad(self.direction)), np.sin(np.deg2rad(self.direction))]
-        angle = np.rad2deg(angle_between(vector_1, vector_2))
+        vector_1 = [(point[0] - self.world_x), (point[1] - self.world_y) ]
+        direction_x = (1-np.sign(self.v_long))*0.5*np.pi+ self.direction
+        direction_y = (np.sign(self.v_long))*np.pi+ self.direction
+        vector_2 = [np.cos(direction_x), np.sin(direction_y)]
+        angle = angle_between(vector_1, vector_2)
+
         return angle
 
     def pov_distances(self, point, angle):
-        dist = np.sqrt((point[1] - self.world_x) ** 2 + (point[1] - self.world_y) ** 2)
-        d_lat = dist * np.sin(np.deg2rad(angle))
-        d_long = dist * np.cos(np.deg2rad(angle))
+        dist = np.sqrt((point[0] - self.world_x) ** 2 + (point[1] - self.world_y) ** 2)
+        d_lat = dist * np.sin(angle)
+        d_long = dist * np.cos(angle)
         return d_lat, d_long
 
     def assess_closest_points(self):
@@ -303,20 +313,35 @@ class EgoVehicle(Vehicle):
             d_lat, d_long = self.pov_distances(p, angle)
 
             for actor in self.actors:
-                worst_case_rel_angle = self.find_worst_case_actor_rel_direction(d_lat, d_long, actor.speed)
-                rel_dist_squared = d_lat ** 2 + d_long ** 2
-                rel_vel_squared = actor.speed ** 2 + self.v_long ** 2 \
-                                 - 2 * actor.speed * self.v_long * np.cos(np.deg2rad(180 - worst_case_rel_angle))
-                time_to_col = np.sqrt(rel_dist_squared / rel_vel_squared)
-                world_worst_case_angle = worst_case_rel_angle + 180 + self.direction  # to make it world direction, and not relative
 
-                self.collision_points_from_vehicle.append([
-                    self.world_x + time_to_col * self.v_long * np.cos(np.deg2rad(self.direction)),
-                    self.world_y - time_to_col * self.v_long * np.sin(np.deg2rad(self.direction))])
+                # can the actor actually reach us?
+                # if so, can lead to a collision, assess the maximum speed
+                # if abs(d_lat / v_actor) < abs(d_long / self.v_long):
+                #     return np.inf
+                worst_case_rel_angle_1, worst_case_rel_angle_2=self.find_worst_case_rel_angle(d_lat, d_long, actor.speed)
 
-                self.collision_points_from_actor.append([
-                    p[0] + time_to_col * actor.speed * np.cos(np.deg2rad(world_worst_case_angle)),
-                        p[1] - time_to_col * actor.speed * np.sin(np.deg2rad((world_worst_case_angle)))])
+                world_worst_case_angle_1 = worst_case_rel_angle_1 + np.pi + self.direction  # to make it world direction, and not relative
+                world_worst_case_angle_2 = worst_case_rel_angle_2 + np.pi + self.direction  # to make it world direction, and not relative
+                rel_dist = np.sqrt(d_lat ** 2 + d_long ** 2)
+                rel_vel = np.sqrt(actor.speed ** 2 + self.v_long ** 2 \
+                                  - (2 * actor.speed * np.sign(self.v_long)* self.v_long * np.cos(np.pi - worst_case_rel_angle_1)))
+
+                time_to_col = rel_dist / rel_vel
+
+                vehicle_collision_point = [
+                    self.world_x + time_to_col *np.sign(self.v_long)* self.v_long * np.cos(self.direction),
+                    self.world_y - time_to_col *np.sign(self.v_long)* self.v_long * np.sin(self.direction)]
+
+                world_worst_case_angle = world_worst_case_angle_1
+                if not isLeft([self.world_x, self.world_y], vehicle_collision_point, p):
+                    world_worst_case_angle=world_worst_case_angle_1 +np.pi/2
+
+                actor_collision_point = [
+                    p[0] + time_to_col * actor.speed * np.cos(world_worst_case_angle),
+                    p[1] - time_to_col * actor.speed * np.sin(world_worst_case_angle)]
+
+                self.collision_points_from_vehicle.append(vehicle_collision_point)
+                self.collision_points_from_actor.append(actor_collision_point)
 
                 # max_v_long = self.acc_rate * (time_to_col - self.latency)
                 # if max_v_long < abs(self.v_long):
@@ -329,7 +354,7 @@ class EgoVehicle(Vehicle):
     def calculate_closest_unknown_points(self):
 
         self.closest_unknown_points = []
-        closest_dist=np.inf
+        closest_dist = np.inf
         if self.unknown_areas is None:
             return
         if self.future_path_area is None:
@@ -343,16 +368,15 @@ class EgoVehicle(Vehicle):
             pts = g.exterior.coords[:-1]
             for pt in pts:
                 angle = self.angle_to_point(pt)
+                #
+                if angle > np.pi / 2:
 
-
-                if angle > 90:
                     # pygame.draw.circle(surface, Colours.RED, (point.x, point.y), 5)
                     continue
                 dist = (pt[0] - self.world_x) ** 2 + (pt[1] - self.world_y) ** 2
-                if dist<closest_dist:
-                    self.closest_unknown_points=[]
-                    self.closest_unknown_points.append(pt)
-                    closest_dist=dist
+                if dist < closest_dist:
+                    self.closest_unknown_points = [pt]
+                    closest_dist = dist
 
     def calculate_unknown_areas(self):
         covered_area = shapely.geometry.Polygon(self.ray_endpoints)
@@ -406,8 +430,8 @@ class EgoVehicle(Vehicle):
         for i in range(number_rays):
             # create a line between the car and the max length
             # cycle through all obstacles
-            target_x = self.world_x + np.cos(np.deg2rad(angle)) * depth
-            target_y = self.world_y - np.sin(np.deg2rad(angle)) * depth
+            target_x = self.world_x + np.cos(angle) * depth
+            target_y = self.world_y - np.sin(angle) * depth
             l = LineString([(self.world_x, self.world_y), (target_x, target_y)])
             for obs in self.world.obstacles.geoms:
                 # if the line goes through the obstacle, then find the nearest point on the obstacle
@@ -428,20 +452,7 @@ class EgoVehicle(Vehicle):
                             curr_dist = temp_dist
 
             self.ray_endpoints.append([target_x, target_y])
-            angle -= 360 / number_rays
-
-    def find_worst_case_actor_rel_direction(self, d_lat, d_long, v_actor):
-
-        # can the actor actually reach us?
-        # if so, can lead to a collision, assess the maximum speed
-        # if abs(d_lat / v_actor) < abs(d_long / self.v_long):
-        #     return np.inf
-
-        # evaluate the worst case angle for an actor to approach the vehicle
-        angle_1 = self.find_worst_case_rel_angle(d_lat, d_long, v_actor)
-        angle = np.rad2deg(angle_1)
-
-        return angle
+            angle -= (np.pi * 2) / number_rays
 
     def find_worst_case_rel_angle(self, d_lat, d_long, v_actor):
         x = d_lat / d_long
@@ -453,7 +464,7 @@ class EgoVehicle(Vehicle):
         c = ((x ** 2) * (y ** 2)) - 1
 
         if ((b ** 2) - (4 * a * c)) < 0:
-            return np.nan
+            return np.nan, np.nan
 
         angle_1, angle_2 = np.inf, np.inf
         A = (-b + np.sqrt((b ** 2) - (4 * a * c))) / (2 * a)
@@ -465,19 +476,15 @@ class EgoVehicle(Vehicle):
             angle_2 = np.arccos(B)
 
         if not np.isfinite(angle_1) and not np.isfinite(angle_2):
-            return np.nan
+            return np.nan, np.nan
 
-        if angle_1 < 0:
-            angle_1 = np.inf
-        if angle_2 < 0:
-            angle_2 = np.inf
-
-        return np.nanmin([angle_2, angle_1])
+        return angle_1, angle_2
 
 
 class NormalVehicle(Vehicle):
-    def __init__(self, starting_position=(0, 150), starting_direction=90):
-        super(NormalVehicle, self).__init__(initial_position=starting_position, starting_direction=starting_direction)
+    def __init__(self, starting_position=(0, 150), starting_direction_degrees=90):
+        super().__init__(image_path=None, initial_position=starting_position,
+                                            starting_direction_degrees=starting_direction_degrees)
 
     def update(self, dt):
         self.accelerate(self.acc_rate)
