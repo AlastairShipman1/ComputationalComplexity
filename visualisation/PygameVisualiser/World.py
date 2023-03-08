@@ -3,7 +3,8 @@ import shapely
 import random
 import config
 from visualisation.VisualisationUtils import Colours
-from visualisation.PygameVisualiser.Vehicle import EgoVehicle, Vehicle, NormalVehicle
+from visualisation.PygameVisualiser.Vehicle import Vehicle, NormalVehicle
+from visualisation.PygameVisualiser.EgoVehicle import EgoVehicle
 from shapely.geometry import Polygon
 
 """
