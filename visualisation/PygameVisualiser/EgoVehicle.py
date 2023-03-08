@@ -93,7 +93,7 @@ class EgoVehicle(Vehicle):
         for point in self.closest_unknown_points:
             angle = self.angle_to_point(point)
 
-            if angle > np.pi / 2:
+            if abs(angle) > np.pi / 2:
                 continue
             pt = self.convert_world_to_draw_coords([point[0], point[1]])
             pygame.draw.circle(surface, Colours.BLUE, pt, 5)
