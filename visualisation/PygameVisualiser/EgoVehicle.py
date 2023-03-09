@@ -56,8 +56,17 @@ class EgoVehicle(Vehicle):
         self.is_limiting_speed = False
         self.limiting_point = None
 
+        # bug finding for collision points
         self.collision_points_from_vehicle = []
         self.collision_points_from_actor = []
+
+        self.d_lat = 0
+        self.d_long = 0
+        self.world_worst_case_angle = 0
+        self.rel_worst_case_angle = 0
+        self.vehicle_forward_point = None
+
+
 
     # region drawing functions
 
@@ -67,9 +76,28 @@ class EgoVehicle(Vehicle):
         self.draw_predicted_motion(surface)
         self.draw_closest_unknown_points(surface)
         self.draw_collision_points(surface)
+        self.draw_collision_meta_data(surface)
 
         # actually draw the vehicle
         super().draw(surface)
+
+    def draw_collision_meta_data(self, surface):
+        vehicle_d_long_line_world_end_point = [
+            self.world_x + self.d_long * np.cos(self.direction),
+            self.world_y - self.d_long * np.sin(self.direction)]
+
+        vehicle_d_lat_line_world_end_point = [
+            vehicle_d_long_line_world_end_point[0] + self.d_lat * np.cos(self.direction+np.pi/2),
+            vehicle_d_long_line_world_end_point[1] - self.d_lat * np.sin(self.direction+np.pi/2)]
+
+        d_long_draw_coords = self.convert_world_to_draw_coords(vehicle_d_long_line_world_end_point)
+        d_lat_draw_coords = self.convert_world_to_draw_coords(vehicle_d_lat_line_world_end_point)
+
+        pygame.draw.aaline(surface, Colours.GREEN, (self.draw_x, self.draw_y), d_long_draw_coords)
+        pygame.draw.aaline(surface, Colours.GREEN, d_long_draw_coords, d_lat_draw_coords)
+
+        # draw_forward_coords = self.convert_world_to_draw_coords(self.vehicle_forward_point)
+        # pygame.draw.circle(surface, Colours.RED, draw_forward_coords, 10)
 
     def draw_collision_points(self, surface):
         for i, unknown_pt in enumerate(self.closest_unknown_points):
@@ -181,8 +209,15 @@ class EgoVehicle(Vehicle):
         self.collision_points_from_actor = []
         self.collision_points_from_vehicle = []
         self.is_limiting_speed = False
+        self.world_worst_case_angle = 0
+        self.rel_worst_case_angle = 0
+        self.d_lat = 0
+        self.d_long = 0
         self.time_to_col = np.inf
-        vehicle_forward_point = [
+
+        # this is a point in front of the drivers eyes.
+        # NOT in the direction of travel. this is important for the worst case angle
+        self.vehicle_forward_point = [
             self.world_x + 10 * np.sign(self.v_long) * self.v_long * np.cos(self.direction),
             self.world_y - 10 * np.sign(self.v_long) * self.v_long * np.sin(self.direction)]
 
@@ -192,39 +227,54 @@ class EgoVehicle(Vehicle):
             # this is consistent if driving backwards (note that the forward direction is maintained in this case)
 
             angle = self.angle_to_point(p)
-            if not is_left([self.world_x, self.world_y], vehicle_forward_point, p):
-                angle = angle - np.pi / 2
             d_lat, d_long = self.pov_distances(p, angle)
+            if d_long == 0:
+                continue
+
+            # check if we're going clockwise, or counterclockwise
+            if not is_left([self.world_x, self.world_y], self.vehicle_forward_point, p):
+                angle = angle - np.pi / 2
+
+            # this is used for ensuring we get the right quadrants
             obs_sign = np.sign(angle)
+            vel_sign = np.sign(self.v_long)
+
+            # limitations in the POV_distances function are addressed here
+            d_lat *= obs_sign
+            d_long *= vel_sign
 
             for actor in self.actors:
-                # at the moment it only works when driving forward, with the point on the left hand side
-                # TODO: i'm fairly certain the issue is here.
-                #  the min value is correct- maybe the find_worst_case_rel_angle function is wrong?
-                #  if not, it's what we do with that rel_worst_case_angle to turn it into world worst case
+                # there are up to two angles. see powerpoint for derivation
+                # we take the minimum angle, correct for cw/ccw and direction of vehicle speed
+                # then make it relative to the world axis
                 a_1, a_2 = self.find_worst_case_rel_angle(d_lat, d_long, actor.speed)
-                rel_worst_case_angle = min(a_1, a_2) * obs_sign
+                rel_worst_case_angle = min(a_1, a_2) * obs_sign * vel_sign
                 world_worst_case_angle = (rel_worst_case_angle + np.pi + self.direction) \
                                          % (2 * np.pi)  # to make it world direction, and not relative
 
-                rel_dist = np.sqrt((p[0] - self.world_x) ** 2 + (p[1] - self.world_y) ** 2)
-                rel_vel = np.sqrt(
-                    actor.speed ** 2 +
-                    self.v_long ** 2 -
-                    (2 * actor.speed * abs(self.v_long) * np.cos(np.pi - abs(rel_worst_case_angle))))
+                # this bit is kinematics and the cosine rule
+                rel_dist_squared = (p[0] - self.world_x) ** 2 + (p[1] - self.world_y) ** 2
+                rel_vel_squared = actor.speed ** 2 + self.v_long ** 2 -\
+                                  (2 * actor.speed * vel_sign * self.v_long * np.cos(np.pi - rel_worst_case_angle))
 
-                time_to_col = rel_dist / rel_vel
+                time_to_col = np.sqrt(rel_dist_squared / rel_vel_squared)
 
                 vehicle_collision_point = [
                     self.world_x + time_to_col * self.v_long * np.cos(self.direction),
                     self.world_y - time_to_col * self.v_long * np.sin(self.direction)]
 
                 actor_collision_point = [
-                    p[0] + time_to_col * actor.speed * np.cos(world_worst_case_angle),
-                    p[1] - time_to_col * actor.speed * np.sin(world_worst_case_angle)]
+                    p[0] + time_to_col * actor.speed * vel_sign * np.cos(world_worst_case_angle),
+                    p[1] - time_to_col * actor.speed * vel_sign * np.sin(world_worst_case_angle)]
 
                 self.collision_points_from_vehicle.append(vehicle_collision_point)
                 self.collision_points_from_actor.append(actor_collision_point)
+
+                self.world_worst_case_angle = world_worst_case_angle
+                self.rel_worst_case_angle = rel_worst_case_angle
+                self.d_lat = d_lat
+                self.d_long = d_long
+
 
     def calculate_closest_unknown_points(self):
 
@@ -329,8 +379,11 @@ class EgoVehicle(Vehicle):
             angle -= (np.pi * 2) / number_rays
 
     def find_worst_case_rel_angle(self, d_lat, d_long, v_actor):
-        x = abs(d_lat) / d_long
-        y = abs(self.v_long) / v_actor
+        try:
+            x = abs(d_lat / d_long)
+            y = abs(self.v_long / v_actor)
+        except:
+            pass
 
         # see powerpoint for a derivation of these values
         a = (x ** 2) + 1

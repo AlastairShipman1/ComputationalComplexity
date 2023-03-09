@@ -4,7 +4,7 @@ import sys
 from visualisation.PygameVisualiser.PygameRecorder import ScreenRecorder
 import config
 from visualisation.PygameVisualiser.World import World
-
+import time
 
 class Visualisation:
     def __init__(self):
@@ -51,6 +51,7 @@ class Visualisation:
 
     def run_single_frame(self):
         dt = self.clock.tick(config.simulation_fps)
+
         if self.is_paused:
             return
 

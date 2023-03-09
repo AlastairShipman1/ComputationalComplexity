@@ -1,10 +1,11 @@
 import numpy as np
 import pygame
+
 import shapely.geometry
 from shapely.ops import nearest_points
 from shapely.geometry.base import CAP_STYLE
 from visualisation.VisualisationUtils import Colours
-from visualisation.PygameVisualiser import Predictions
+from visualisation.PygameVisualiser import Predictions, Obstacle
 import config
 from shapely.geometry import LineString
 
@@ -20,11 +21,12 @@ class Actor:
         self.speed = 30
 
 
-class Vehicle:
+class Vehicle(Obstacle.Obstacle):
 
     def __init__(self, image_path=None, initial_position=(0, 150), starting_direction_degrees=0):
 
         # simulation variables
+        super().__init__()
         self.v_long = 0
         self.v_lat = 0
         self.acc_long = 0
