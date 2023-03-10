@@ -18,10 +18,10 @@ angular units in radians, varying 0->2pi
 
 class Actor:
     def __init__(self):
-        self.speed = 30
+        self.speed = 5
 
 
-class Vehicle(Obstacle.Obstacle):
+class Vehicle:
 
     def __init__(self, image_path=None, initial_position=(0, 150), starting_direction_degrees=0):
 

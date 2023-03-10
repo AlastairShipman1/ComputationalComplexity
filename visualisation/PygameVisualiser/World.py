@@ -33,7 +33,8 @@ class World:
         num_buildings = 2
         num_rows = 1
         num_cols = int(num_buildings / num_rows)
-        self.individual_obstacles = []
+        self.static_obstacles = []
+        self.dynamic_obstacles = []
         self.obstacles = shapely.geometry.MultiPolygon()
         self.obstacle_locations = []
         self.obstacle_images = []
@@ -51,19 +52,19 @@ class World:
                 rotated_image = pygame.transform.rotate(building_img, angle)
                 scaled_image = pygame.transform.smoothscale(rotated_image, (self.building_width, self.building_width))
                 rect = scaled_image.get_rect(topleft=(x, y))
-                pos = [(rect[0], rect[1]), (rect[0] + rect[2], rect[1]),
+                vertices = [(rect[0], rect[1]), (rect[0] + rect[2], rect[1]),
                        (rect[0] + rect[2], rect[1] + rect[3]), (rect[0], rect[1] + rect[3])]
                 self.obstacle_images.append(scaled_image)
                 self.original_images.append(scaled_image)
-                self.individual_obstacles.append(Polygon(pos))
+                self.static_obstacles.append(Polygon(vertices))
                 self.obstacle_locations.append([x, y])
 
                 v = NormalVehicle(starting_position=(x - rect[2] / 2, y * 2.5))
                 self.pygame_agents.append(v)
 
-                x += scaled_image.get_width() + 1000
+                x += scaled_image.get_width() + 100
 
-        self.obstacles = shapely.geometry.MultiPolygon(self.individual_obstacles)
+        self.obstacles = shapely.geometry.MultiPolygon(self.static_obstacles)
         self.ego_vehicle = EgoVehicle(self)
         self.pygame_agents.append(self.ego_vehicle)
 
@@ -94,9 +95,6 @@ class World:
             agent.draw(surface)
 
     def update(self, dt):
-        # for i, obs in enumerate(self.individual_obstacles):
-        #     obs.update()
-
         for agent in self.pygame_agents:
             agent.update(dt)
             if agent.world_y < 0:
