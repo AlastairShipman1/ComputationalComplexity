@@ -47,7 +47,6 @@ class EgoVehicle(Vehicle):
         self.predicter_fast = Predictions.ConstCurvaturePredicter(self, 5)
 
         car = Actor()
-
         self.ray_length = 100  # in metres
         self.actors = [car]  # pedestrians, cars, bicycles, etc
         self.unknown_areas = None
@@ -75,7 +74,7 @@ class EgoVehicle(Vehicle):
         self.draw_sensor_rays(surface)
         self.draw_sensor_area(surface)
         self.draw_predicted_motion(surface)
-        self.draw_closest_unknown_points(surface)
+        # self.draw_closest_unknown_points(surface)
         self.draw_collision_points(surface)
         self.draw_collision_meta_data(surface)
 
@@ -198,8 +197,8 @@ class EgoVehicle(Vehicle):
         if np.isfinite(self.time_to_col):
             # if the time to collision is less than the time it would take to brake to 0, plus latency
             # then we need to slow down
-            brake_time = abs(self.v_long/self.acc_rate)
-            if self.time_to_col< self.latency +brake_time:
+            brake_time = abs(self.v_long/self.max_acc_rate)
+            if self.time_to_col < self.latency + brake_time:
                 self.v_long -= np.sign(self.v_long)*self.acc_rate
 
 
