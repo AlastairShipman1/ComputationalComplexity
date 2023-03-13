@@ -3,31 +3,10 @@ from shapely.geometry import CAP_STYLE, LineString
 
 from visualisation.PygameVisualiser.Vehicle import Vehicle, Actor
 import visualisation.PygameVisualiser.Predictions as Predictions
-from visualisation.VisualisationUtils import Colours
+from visualisation.VisualisationUtils import Colours, is_left, unit_vector, angle_between
 import config
 import pygame
 import shapely
-
-
-def is_left(a, b, c):
-    return ((b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0])) < 0
-
-
-def unit_vector(vector):
-    """ Returns the unit vector of the vector.  """
-    mag = np.linalg.norm(vector)
-    if mag == 0:
-        return [0, 0]
-    return vector / mag
-
-
-def angle_between(v1, v2):
-    """ Returns the angle in radians between vectors 'v1' and 'v2'::
-    """
-    v1_u = unit_vector(v1)
-    v2_u = unit_vector(v2)
-    return np.arccos(np.clip(np.dot(v1_u, v2_u), -1.0, 1.0))
-
 
 class EgoVehicle(Vehicle):
     def __init__(self, world):
