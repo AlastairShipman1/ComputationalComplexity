@@ -31,7 +31,8 @@ class Vehicle:
         self.v_lat = 0
         self.acc_long = 0
         self.direction = np.deg2rad(starting_direction_degrees)
-        self.acc_rate = 5
+        self.acc_rate = 1
+        self.max_acc_rate = 5
         self.friction_rate = 0
         self.turn_rate = 0.05
         self.max_v = 30  # 30 is approximately 70mph
