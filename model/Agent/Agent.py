@@ -1,10 +1,10 @@
-from src.Model import Clock
+from model import clock
 
 from abc import ABC, abstractmethod
 
 class Agent(ABC):
 
-    def __init__(self, clock:Clock, uuid):
+    def __init__(self, clock:clock, uuid):
         self._unique_id= uuid
         self._clock = clock
 

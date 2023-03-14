@@ -1,12 +1,12 @@
 import numpy as np
 from shapely.geometry import CAP_STYLE, LineString
+import pygame
+import shapely
 
 from visualisation.PygameVisualiser.Vehicle import Vehicle, Actor
 import visualisation.PygameVisualiser.Predictions as Predictions
 from visualisation.VisualisationUtils import Colours
 import config
-import pygame
-import shapely
 
 
 def is_left(a, b, c):

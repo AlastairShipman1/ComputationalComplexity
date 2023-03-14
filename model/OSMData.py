@@ -1,6 +1,6 @@
 """
 it is clearly stated that osmnx should only really be used with conda.
-currently you have an python virtual environment
+currently you have a python virtual environment
 not a conda venv.
 this will cause issues.
 

@@ -6,9 +6,9 @@ class Waypoint():
         this class defines the point that an agent should get to,
         at a time they should be there, and the velocity that they should have when they are
     '''
-    def __init__(self, x, y, t, v_x, v_y, theta):
+    def __init__(self, x, y, v_x, v_y, theta, guid):
         self.position = [x, y]
-        self.t = t
+        self.id = guid
         self.velocity = [v_x, v_y]
         self.direction = theta
 

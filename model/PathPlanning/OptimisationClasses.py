@@ -1,6 +1,6 @@
 from abc import ABC
 from shapely.geometry import LineString
-from src.Model.LocomotionUtilityClasses.Waypoint import Waypoint
+from model.LocomotionUtilityClasses.Waypoint import Waypoint
 import numpy as np
 
 class Optimiser(ABC):

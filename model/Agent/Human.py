@@ -1,23 +1,23 @@
 import shapely
 from shapely.ops import unary_union
 from shapely.geometry import LineString, Point
-from src.Model import Clock
-from src.Model.Agent import Agent
-from src.Model.LocomotionUtilityClasses import Waypoint
-from src.Model.PathPlanning import PredictionClasses, BubbleOptimiser, OptimisationClasses
+from model import clock
+from model.Agent import Agent
+from model.LocomotionUtilityClasses import Waypoint
+from model.PathPlanning import PredictionClasses, BubbleOptimiser, OptimisationClasses
 import numpy as np
 from simple_pid import PID
 
 
-def rotate_point(c, p, r):
-    d_theta = r
-    rel_x = p[0] - c[0]
-    rel_y = p[1] - c[1]
+def rotate_point(centre, point, radians):
 
-    agent_circle_rotated_pos = [rel_x * np.cos(d_theta) - rel_y * np.sin(d_theta),
-                                rel_x * np.sin(d_theta) + rel_y * np.cos(d_theta)]
-    post_rotated_pos = [agent_circle_rotated_pos[0] + c[0],
-                        agent_circle_rotated_pos[1] + c[1]]
+    rel_x = point[0] - centre[0]
+    rel_y = point[1] - centre[1]
+
+    agent_circle_rotated_pos = [rel_x * np.cos(radians) - rel_y * np.sin(radians),
+                                rel_x * np.sin(radians) + rel_y * np.cos(radians)]
+    post_rotated_pos = [agent_circle_rotated_pos[0] + centre[0],
+                        agent_circle_rotated_pos[1] + centre[1]]
     return post_rotated_pos
 
 
@@ -39,7 +39,7 @@ def angle_between(v1, v2):
 
 class Human(Agent.Agent):
     # region Initial Functions
-    def __init__(self, clock: Clock, uuid):
+    def __init__(self, clock: clock, uuid):
         """subscribe to the clock tick, and initialise the required variables"""
         super().__init__(clock, uuid)
         self.initialise_variables()
@@ -85,8 +85,8 @@ class Human(Agent.Agent):
         self.sigma_speed = 3.3 #3.3
         self.sigma_bearing = 2 #2
 
-        # self.pid_x = PID(1, .001, 0.0005, sample_time=None)
-        # self.pid_y = PID(1, .001, 0.0005, sample_time=None)
+        self.pid_x = PID(1, .001, 0.0005, sample_time=None)
+        self.pid_y = PID(1, .001, 0.0005, sample_time=None)
 
         arm1 = shapely.geometry.Point(0, 0.4).buffer(.25)
         arm2 = shapely.geometry.Point(0, -0.4).buffer(.25)
@@ -257,18 +257,16 @@ class Human(Agent.Agent):
         self.global_ticks = self.clock.ticks
 
     def set_next_waypoint(self):
+        self.find_next_waypoint()
+        return
         if self.global_ticks > self.next_waypoint.t:
-            self.next_waypoint = self.find_next_waypoint_through_time()
+            self.next_waypoint = self.find_next_waypoint()
             if self.next_waypoint is None:
                 self.completed = True
 
-    def find_next_waypoint_through_time(self):
-        nearest_wp = self.next_waypoint
-        if nearest_wp.t == max(list(self.current_own_trajectory.keys())):
-            return
-        nearest_wp_time = min([t for t in list(self.current_own_trajectory.keys()) if t >= self.global_ticks])
-        nearest_wp = self.current_own_trajectory[nearest_wp_time]
-        return nearest_wp
+    def find_next_waypoint(self):
+        # TODO: implement this
+        ...
 
     def check_at_destination(self):
 
@@ -312,20 +310,20 @@ class Human(Agent.Agent):
         """
         Plans next position, stores it in self.proposed_next_position
         """
-        '''
+
         # Previous, waypoint-based approach
-        # dt = self.clock.tickstep / self.clock.ticks_per_second
-        # dx=self.next_waypoint.position[0]-self.position[0]
-        # dy=self.next_waypoint.position[1]-self.position[1]
-        # update_x=dx
-        # update_y=dy
-        #
-        # deviation = self.next_waypoint.assess_deviation(self)
-        # #update_x = self.pid_x(deviation["position"][0], dt) \
-        #     # +self.rng.integers(-1, 2, 1)[0] * np.cos(self.internal_ticks * 0.002)* .1 * dt
-        # #update_y = self.pid_y(deviation["position"][1], dt) \
-        #     # +self.rng.integers(-1, 2, 1)[0] * np.sin(self.internal_ticks * 0.002)* .1 * dt
-        # self.proposed_next_position = [self._position[0] + update_x, self._position[1] + update_y]        
+        dt = self.clock.tickstep / self.clock.ticks_per_second
+        dx=self.next_waypoint.position[0]-self.position[0]
+        dy=self.next_waypoint.position[1]-self.position[1]
+        update_x=dx
+        update_y=dy
+
+        deviation = self.next_waypoint.assess_deviation(self)
+        update_x = self.pid_x(deviation["position"][0], dt) \
+            +self.rng.integers(-1, 2, 1)[0] * np.cos(self.internal_ticks * 0.002)* .1 * dt
+        update_y = self.pid_y(deviation["position"][1], dt) \
+            +self.rng.integers(-1, 2, 1)[0] * np.sin(self.internal_ticks * 0.002)* .1 * dt
+        self.proposed_next_position = [self._position[0] + update_x, self._position[1] + update_y]
         '''
         # Gradient based approach
 
@@ -368,6 +366,7 @@ class Human(Agent.Agent):
         dx = new_speed * np.cos(new_direction) * dt
         dy = new_speed * np.sin(new_direction) * dt
         self.proposed_next_position = [self.position[0] + dx, self.position[1] + dy]
+        '''
 
     def get_closest_approach_metrics(self, rel_position, rel_velocity):
         """

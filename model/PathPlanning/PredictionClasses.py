@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 import numpy as np
-from src.Model.Agent import Agent
-from src.Model.LocomotionUtilityClasses import Waypoint
+from model.Agent import Agent
+from model.LocomotionUtilityClasses import Waypoint
 
 """
     these predictions should take into account:
