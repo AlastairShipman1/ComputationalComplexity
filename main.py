@@ -1,14 +1,13 @@
 from visualisation.PygameVisualiser.PygameVisualisation import Visualisation
+from visualisation.PygameVisualiser.World import World
+from visualisation.PygameVisualiser.OSMData import get_edinburgh
 
 def main():
-    v=Visualisation()
+    road_network, optimal_route, background_img, background_img_extents = get_edinburgh()
+    world = World(road_network, optimal_route)
+    v = Visualisation(world, background_img, background_img_extents)
     v.run()
 
-# TODO: then finally do the perception/control time (replanning?) and velocity limiting
-# TODO: make a zoom and pan function
-# TODO: draw a line showing worst case movement from nearest unknown point
-#
-        # TODO: draw vector of worst case actor movement
-        # TODO: get dynamic obstacles to show shadows
+
 if __name__ == "__main__":
     main()
