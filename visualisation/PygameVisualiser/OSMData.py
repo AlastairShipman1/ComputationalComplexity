@@ -11,6 +11,8 @@ import rasterio
 from rasterio.plot import show as rioshow
 import matplotlib.pyplot as plt
 
+from visualisation.PygameVisualiser import OSMTiles
+
 
 def main():
     get_edinburgh()
@@ -20,7 +22,8 @@ def get_edinburgh():
     edinburgh_graph_filepath = config.input_gis_file_path + "Edinburgh.graphml"
     edinburgh_nodes_filepath = config.input_gis_file_path + "Edinburgh_nodes.gpkg"
     edinburgh_streets_filepath = config.input_gis_file_path + "Edinburgh_streets.gpkg"
-    edinburgh_geometries_filepath = config.input_gis_file_path + "Edinburgh_geometries.gpkg"
+    # for some reason this doesn't work as a gpkg, so turn it into a geojson instead
+    edinburgh_geometries_filepath = config.input_gis_file_path + "Edinburgh_geometries.geojson"
     all_filepaths = [edinburgh_graph_filepath, edinburgh_nodes_filepath, edinburgh_streets_filepath,
                      edinburgh_geometries_filepath]
 
@@ -29,19 +32,30 @@ def get_edinburgh():
         edi_graph = ox.graph_from_place(place, network_type='drive')
         ox.save_graphml(edi_graph, edinburgh_graph_filepath)
         edi_nodes, edi_streets = ox.graph_to_gdfs(edi_graph)
+
+        edi_streets = edi_streets.apply(lambda c: c.astype(str) if c.name != "geometry" else c, axis=0)
+        edi_nodes = edi_nodes.apply(lambda c: c.astype(str) if c.name != "geometry" else c, axis=0)
         edi_streets.to_file(edinburgh_streets_filepath, driver="GPKG")
         edi_nodes.to_file(edinburgh_nodes_filepath, driver="GPKG")
 
         tags = {'building': True, 'highway': True}
         edi_geoms = ox.geometries_from_place(place, tags={"highway": True})
+
+        fixme_cols =['fixme', 'FIXME']
+        for col in fixme_cols:
+            if col in edi_geoms.columns:
+                edi_geoms.drop([col], inplace=True, axis=1)
+
         edi_geoms = edi_geoms.apply(lambda c: c.astype(str) if c.name != "geometry" else c, axis=0)
-        edi_geoms.to_file(edinburgh_geometries_filepath, driver="GPKG")
+        edi_geoms.to_file(edinburgh_geometries_filepath, driver="GeoJSON")
 
     else:
         edi_graph = ox.load_graphml(edinburgh_graph_filepath)
-        edi_nodes = gpd.read_file(edinburgh_nodes_filepath)
-        edi_streets = gpd.read_file(edinburgh_streets_filepath)
-        edi_geoms = gpd.read_file(edinburgh_geometries_filepath)
+
+        # this is REALLY slow for some reason?
+        # edi_nodes = gpd.read_file(edinburgh_nodes_filepath)
+        # edi_streets = gpd.read_file(edinburgh_streets_filepath)
+        # edi_geoms = gpd.read_file(edinburgh_geometries_filepath)
 
         orig_node = list(edi_graph)[0]
         dest_node = list(edi_graph)[-1]
@@ -54,7 +68,12 @@ def get_edinburgh():
         w = edi_graph.nodes[orig_node]['x']
 
         # fig, ax = plt.subplots()
+
+        # OSMTiles.generate_background({'min_x':e, 'max_x':w, 'min_y':s, 'max_y':n}, (0,0))
+
         back_img, extents = cx.bounds2img(w, s, e, n, source=cx.providers.CartoDB.Voyager)
+
+
         # ax.imshow(back_img, extent=extents)
         # ox.plot_graph_route(edi_graph, route, route_color="y", route_linewidth=6, node_size=0, ax=ax)
         # # edi_graph.plot(ax=ax) # this will work for a geometries gdf, which you should do next.

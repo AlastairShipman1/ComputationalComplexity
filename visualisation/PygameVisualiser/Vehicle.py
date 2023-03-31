@@ -40,8 +40,8 @@ class Vehicle:
 
         # TODO: need access to the visualiser here?
         self.actual_vehicle_size = [6, 3]
-        self.draw_size = [self.actual_vehicle_size[0] * self.pixel_to_size_ratio,
-                          self.actual_vehicle_size[1] * self.pixel_to_size_ratio]
+        self.draw_size = [self.actual_vehicle_size[0],
+                          self.actual_vehicle_size[1]]
 
         self.original_image = pygame.image.load(self.image_path)
         self.original_image = pygame.transform.rotate(self.original_image, 180)
@@ -143,10 +143,8 @@ class Vehicle:
 
     def update_scale(self, scale):
         #todo: or here?
-        inc = scale / self.draw_scale
-        self.pixel_to_size_ratio *= inc
-        self.draw_size = [self.actual_vehicle_size[0] * self.pixel_to_size_ratio,
-                          self.actual_vehicle_size[1] * self.pixel_to_size_ratio]
+        self.draw_size = [self.actual_vehicle_size[0] * scale,
+                          self.actual_vehicle_size[1] * scale]
         self.rotate()
         self.draw_scale = scale
 

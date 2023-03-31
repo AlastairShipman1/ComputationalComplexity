@@ -18,7 +18,7 @@ Units in metric
 
 
 class World:
-    def __init__(self, road_network=None, optimal_route=None):
+    def __init__(self, road_network=None, optimal_route=None, override_waypoints=None):
 
         build_1_path = config.input_image_file_path + 'Building_topdown_1.png'
         build_2_path = config.input_image_file_path + 'Building_topdown_2.png'
@@ -38,10 +38,17 @@ class World:
         self.original_images = []
         self.building_width = 50
         self.waypoints = []
-        for i, node_id in enumerate(optimal_route):
-            x= road_network.nodes[node_id]['x']
-            y= road_network.nodes[node_id]['y']
-            self.waypoints.append(Waypoint(i, x,y))
+
+        if road_network is not None and optimal_route is not None:
+            for i, node_id in enumerate(optimal_route):
+                x = road_network.nodes[node_id]['x']
+                y = road_network.nodes[node_id]['y']
+                self.waypoints.append(Waypoint(i, x, y))
+        elif override_waypoints is not None:
+            for key, val in override_waypoints.items():
+                x = val[0]
+                y = val[1]
+                self.waypoints.append(Waypoint(int(key), x, y))
         # waypoints = [[25,0],[50, 50], [50, 100],[25, 125], [0, 125],[-25, 100], [-25, 25], [0, 0]  ]
         #
         # for i, val in enumerate(waypoints):
@@ -60,7 +67,7 @@ class World:
                 scaled_image = pygame.transform.smoothscale(rotated_image, (self.building_width, self.building_width))
                 rect = scaled_image.get_rect(topleft=(x, y))
                 vertices = [(rect[0], rect[1]), (rect[0] + rect[2], rect[1]),
-                       (rect[0] + rect[2], rect[1] + rect[3]), (rect[0], rect[1] + rect[3])]
+                            (rect[0] + rect[2], rect[1] + rect[3]), (rect[0], rect[1] + rect[3])]
                 self.obstacle_images.append(scaled_image)
                 self.original_images.append(scaled_image)
                 self.static_obstacles.append(Polygon(vertices))
@@ -73,15 +80,10 @@ class World:
 
         self.obstacles = shapely.geometry.MultiPolygon(self.static_obstacles)
         self.ego_vehicle = EgoVehicle(world=self)
-        self.ego_vehicle.world_x=self.waypoints[0].position[0]
-        self.ego_vehicle.world_y=self.waypoints[0].position[1]
+        self.ego_vehicle.world_x = self.waypoints[0].position[0]
+        self.ego_vehicle.world_y = self.waypoints[0].position[1]
         self.pygame_agents.append(self.ego_vehicle)
 
-
-
-    def update_offset(self, offset):
-        for agent in self.pygame_agents:
-            agent.update_offset(offset)
 
     def update_scale(self, updated_zoom, previous_zoom):
         ratio = updated_zoom / previous_zoom
@@ -95,13 +97,6 @@ class World:
         for agent in self.pygame_agents:
             agent.update_scale(updated_zoom)
 
-    def draw(self, surface):
-        for i, obs in enumerate(self.obstacle_images):
-            x=self.obstacle_locations[i][0] + self.offset[0]
-            y=self.obstacle_locations[i][1] + self.offset[1]
-            surface.blit(obs,(x,y))
-        for agent in self.pygame_agents:
-            agent.draw(surface)
 
     def update(self, dt):
         for agent in self.pygame_agents:
