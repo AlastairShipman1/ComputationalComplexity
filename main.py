@@ -27,11 +27,12 @@ def main():
         data = json.load(f)
 
     extents= data.pop('background_img_extents', None)
-
+    pf = config.visualisation_padding_factor
+    extents =[extents[0], extents[1]+pf, extents[2]-pf, extents[3]+pf]
     # world = World(road_network, optimal_route)
-    world = World(override_waypoints=data)
+    world = World(override_waypoints=data, extents=extents)
     # v = Visualisation(world, background_img, background_img_extents)
-    v=Visualisation(world, extents=extents)
+    v=Visualisation(world)
     v.run()
 
 

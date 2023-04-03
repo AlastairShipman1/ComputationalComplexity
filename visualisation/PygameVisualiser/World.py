@@ -18,7 +18,7 @@ Units in metric
 
 
 class World:
-    def __init__(self, road_network=None, optimal_route=None, override_waypoints=None):
+    def __init__(self, road_network=None, optimal_route=None, override_waypoints=None, extents=(0,1,0,1)):
 
         build_1_path = config.input_image_file_path + 'Building_topdown_1.png'
         build_2_path = config.input_image_file_path + 'Building_topdown_2.png'
@@ -38,21 +38,27 @@ class World:
         self.original_images = []
         self.building_width = 50
         self.waypoints = []
+        self.extents=extents
+        self.world_origin=[extents[0], extents[2]]
+        self.world_size = extents[1] - extents[0], extents[3] - extents[2]
 
         if road_network is not None and optimal_route is not None:
             for i, node_id in enumerate(optimal_route):
                 x = road_network.nodes[node_id]['x']
                 y = road_network.nodes[node_id]['y']
+                dist_from_northern_extent = extents[3]-y
+                dist_from_southern_extent = y-extents[2]
+
                 self.waypoints.append(Waypoint(i, x, y))
         elif override_waypoints is not None:
             for key, val in override_waypoints.items():
                 x = val[0]
                 y = val[1]
                 self.waypoints.append(Waypoint(int(key), x, y))
-        # waypoints = [[25,0],[50, 50], [50, 100],[25, 125], [0, 125],[-25, 100], [-25, 25], [0, 0]  ]
-        #
+
+        # waypoints = [[250,300],[500, 50], [500, 100],[250, 125], [300, 125]]
         # for i, val in enumerate(waypoints):
-        #     #self,guid, x, y, v_x=0, v_y=0, theta=0
+        #     # # self,guid, x, y, v_x=0, v_y=0, theta=0
         #     self.waypoints.append(Waypoint(i, val[0], val[1]))
 
         self.pygame_agents = []

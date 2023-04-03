@@ -38,7 +38,6 @@ class Vehicle:
         if image_path is None:
             self.image_path = config.input_image_file_path + '/blue_car_top_down.png'
 
-        # TODO: need access to the visualiser here?
         self.actual_vehicle_size = [6, 3]
         self.draw_size = [self.actual_vehicle_size[0],
                           self.actual_vehicle_size[1]]
@@ -89,7 +88,6 @@ class Vehicle:
         self.turn_circle=turn_circle
 
     def draw(self, surface):
-        #TODO or do we pass the visualiser in here?
         ##### draw agent on surface#########
         self.update_offset(self.draw_offset)
         pos = (self.draw_x - self.image_offset[0], self.draw_y - self.image_offset[1])
@@ -142,7 +140,6 @@ class Vehicle:
         self.draw_y = self.world_y * self.draw_scale + offset[1]
 
     def update_scale(self, scale):
-        #todo: or here?
         self.draw_size = [self.actual_vehicle_size[0] * scale,
                           self.actual_vehicle_size[1] * scale]
         self.rotate()

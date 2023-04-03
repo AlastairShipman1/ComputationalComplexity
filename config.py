@@ -5,6 +5,8 @@ recording = False
 
 simulation_fps = 40
 
+visualisation_padding_factor=1000
+
 input_file_path = f"{project_path}/input_data"
 output_file_path = f"{project_path}/output_data"
 

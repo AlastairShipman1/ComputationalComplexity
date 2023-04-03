@@ -2,42 +2,53 @@ import copy
 import numpy as np
 import pygame
 import sys
+from visualisation.VisualisationUtils import Colours
 from visualisation.PygameVisualiser.PygameRecorder import ScreenRecorder
 import config
 import os
 
 class Visualisation:
-    def __init__(self, world, background_image=None, extents=None):
+    def __init__(self, world, background_image_filepath=None):
         pygame.init()
-        self.zoom = 1
-        self.previous_pos = None
-        self.is_dragging = False
-        self.initial_size = 1500, 750
-        self.display_size = 1500, 750
-        self.world_size = extents[0]-extents[1], extents[2]-extents[3]
-        self.offset = 0, 0
-        self.screen = pygame.display.set_mode(self.display_size)
-        self.is_paused = False
         self.clock = pygame.time.Clock()
         self.world = world
-        self.tracking = False
 
-        if background_image is not None:
-            self.bg_original = pygame.image.load(background_image)
-        elif os.path.exists(config.input_image_file_path+"bg_low_qual.png"):
-            self.bg_original = pygame.image.load(config.input_image_file_path + 'bg_low_qual.png')
-        else:
-            raise Exception("need a background image, or refactor to remove requirement")
+        self.zoom = 1
+        self.previous_pos = None
+        self.display_size = 1500, 750
+        self.manual_offset = [-self.world.world_origin[0], -self.world.world_origin[1]]
+        # self.initial_offset = self.world.world_origin
+        # self.overall_offset = [self.initial_offset[0]+self.manual_offset[0], self.initial_offset[1]+self.manual_offset[1]]
+        self.screen = pygame.display.set_mode(self.display_size)
+        # self.manual_offset=[-self.world.waypoints[0].position[0], -self.world.waypoints[0].position[1]]
 
-        self.bg_original = pygame.transform.rotate(self.bg_original, 180)
+        self.is_paused = False
+        self.is_tracking = False
+        self.is_dragging = False
+        self.is_showing_background=True
 
-        self.bg = pygame.transform.scale(self.bg_original, self.bg_original.get_size())
-        self.bg_original_extents=extents
-        self.bg_position = self.world.waypoints[0].position
+        if self.is_showing_background:
+            is_low_quality_image = True
+            if background_image_filepath is not None:
+                file_path = background_image_filepath
+            elif os.path.exists(config.input_image_file_path + "bg_low_qual.png") and is_low_quality_image:
+                file_path = config.input_image_file_path + 'bg_low_qual.png'
+            elif os.path.exists(config.input_image_file_path + "bp.png") and not is_low_quality_image:
+                file_path = config.input_image_file_path + 'bg.png'
+            else:
+                raise Exception("need a background image, or refactor to remove requirement")
 
-        # self.bg_original = pygame.transform.scale(self.bg_original, self.world_size)
-        # self.bg = pygame.transform.smoothscale(self.bg, self.world_size)
+            self.bg_original = pygame.image.load(file_path)
+            # self.bg_original = pygame.transform.rotate(self.bg_original, 180)
+            self.bg_original = pygame.transform.flip(self.bg_original, False, True)
+            self.bg = pygame.transform.scale(self.bg_original, self.bg_original.get_size())
+            self.bg_original_extents=self.world.extents
+            self.bg_position = self.world.world_origin
 
+            self.bg_original = pygame.transform.smoothscale(self.bg_original, self.world.world_size)
+            self.bg = pygame.transform.smoothscale(self.bg, self.world.world_size)
+
+        self.update_offset(self.manual_offset)
         self.pixel_to_metre_ratio = 1 # currently 1 pixel per metre
 
         if config.recording:
@@ -86,7 +97,7 @@ class Visualisation:
         self.update_world(dt)
         self.draw_world()
 
-        if self.tracking:
+        if self.is_tracking:
             self.recentre_on_ego_agent()
 
         pygame.display.flip()
@@ -102,7 +113,7 @@ class Visualisation:
             elif event.key == pygame.K_ESCAPE:
                 self.quit_display_and_game()
             elif event.key == pygame.K_t:
-                self.tracking = not self.tracking
+                self.is_tracking = not self.is_tracking
 
         elif event.type == pygame.MOUSEBUTTONUP:
             self.handle_mouse_clicked(event)
@@ -120,23 +131,24 @@ class Visualisation:
             self.is_dragging = True
             delta_x = current_pos[0] - self.previous_pos[0]
             delta_y = current_pos[1] - self.previous_pos[1]
-            self.offset = self.offset[0] + delta_x, self.offset[1] + delta_y
+            self.manual_offset = self.manual_offset[0] + delta_x, self.manual_offset[1] + delta_y
             for agent in self.world.pygame_agents:
-                agent.update_offset(self.offset)
+                agent.update_offset(self.manual_offset)
         self.previous_pos = current_pos
 
     def handle_mousewheel(self, multiplier):
         sc = 1 / (1.025 + multiplier * 0.225)  # cycle between 25% increase, and 80% decrease in zoom.
         zoom = self.zoom * sc
-        self.offset = self.offset[0] * sc, self.offset[1] * sc
+        self.manual_offset = self.manual_offset[0] * sc, self.manual_offset[1] * sc
         self.world.update_scale(zoom, self.zoom)
         self.zoom = zoom
         self.pixel_to_metre_ratio = self.zoom
-
+        self.update_offset(self.manual_offset)
         # update the image
-        size = (int(self.bg_original.get_width() * self.zoom), int(self.bg_original.get_height() * self.zoom))
-        self.bg = pygame.transform.smoothscale(self.bg_original, size)
-        self.bg_position = [self.bg_position[0] * sc, self.bg_position[1] * sc]
+        if self.is_showing_background:
+            size = (int(self.bg_original.get_width() * self.zoom), int(self.bg_original.get_height() * self.zoom))
+            self.bg = pygame.transform.smoothscale(self.bg_original, size)
+            self.bg_position = [self.world.world_origin[0] * self.zoom, self.world.world_origin[1] * self.zoom]
 
     def handle_mouse_clicked(self, event):
         if event.button != 1:  # only use left click here. mousewheel buttons:4 or == 5:
@@ -148,8 +160,9 @@ class Visualisation:
         starting_pos = [self.world.ego_vehicle.draw_x, self.world.ego_vehicle.draw_y]
         delta_x = -starting_pos[0] + self.display_size[0] / 2
         delta_y = -starting_pos[1] + self.display_size[1] / 2
-        self.offset = self.offset[0] + delta_x, self.offset[1] + delta_y
-        self.update_offset(self.offset)
+
+        self.manual_offset = self.manual_offset[0] + delta_x, self.manual_offset[1] + delta_y
+        self.update_offset(self.manual_offset)
 
     def update_offset(self, offset):
         for agent in self.world.pygame_agents:
@@ -165,11 +178,14 @@ class Visualisation:
     def draw_world(self):
         """draw the agents here"""
         # blit the background image here. after rotating 180 degrees?
-        self.screen.blit(self.bg, self.offset)
+        self.screen.fill(Colours.GREY)
+        if self.is_showing_background:
+            position = [self.bg_position[0]+self.manual_offset[0], self.bg_position[1]+self.manual_offset[1]]
+            self.screen.blit(self.bg, position)
 
         for i, obs in enumerate(self.world.obstacle_images):
-            x = self.world.obstacle_locations[i][0] + self.offset[0]
-            y = self.world.obstacle_locations[i][1] + self.offset[1]
+            x = self.world.obstacle_locations[i][0] + self.manual_offset[0]
+            y = self.world.obstacle_locations[i][1] + self.manual_offset[1]
             self.screen.blit(obs, (x, y))
         for agent in self.world.pygame_agents:
             agent.draw(self.screen)

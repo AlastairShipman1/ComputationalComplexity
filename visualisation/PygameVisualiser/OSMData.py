@@ -70,7 +70,9 @@ def get_edinburgh():
         # fig, ax = plt.subplots()
 
         # OSMTiles.generate_background({'min_x':e, 'max_x':w, 'min_y':s, 'max_y':n}, (0,0))
+        #TODO: this means that the extents change, which in turn deals with the world origin.
 
+        return
         back_img, extents = cx.bounds2img(w, s, e, n, source=cx.providers.CartoDB.Voyager)
 
 

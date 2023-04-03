@@ -23,7 +23,7 @@ def generate_background(limits, origin):
     The maps are taken from OSM tiles, and stitched together appropriately. """
 
     # currently the padding is in metres.
-    padding_factor = 0#config.visualisation_metrics["figure_padding"]
+    padding_factor = config.visualisation_padding_factor
 
     min_x = limits['min_x'] - padding_factor
     min_y = limits['min_y'] - padding_factor
