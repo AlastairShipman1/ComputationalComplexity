@@ -18,49 +18,49 @@ def main():
 
 def get_edinburgh():
     edinburgh_graph_filepath = config.input_gis_file_path + "Edinburgh.graphml"
-    edinburgh_nodes_filepath = config.input_gis_file_path + "Edinburgh_nodes.gpkg"
+    edinburgh_nodes_filepath =  config.input_gis_file_path + "Edinburgh_nodes.gpkg"
     edinburgh_streets_filepath = config.input_gis_file_path + "Edinburgh_streets.gpkg"
-    edinburgh_geometries_filepath = config.input_gis_file_path + "Edinburgh_geometries.gpkg"
+    edinburgh_geometries_filepath =  config.input_gis_file_path + "Edinburgh_geometries.gpkg"
     all_filepaths = [edinburgh_graph_filepath, edinburgh_nodes_filepath, edinburgh_streets_filepath,
                      edinburgh_geometries_filepath]
 
     if not all([os.path.isfile(i) for i in all_filepaths]):
-        place = "Edinburgh, UK"
+        place = "Coventry, UK"
         edi_graph = ox.graph_from_place(place, network_type='drive')
         ox.save_graphml(edi_graph, edinburgh_graph_filepath)
         edi_nodes, edi_streets = ox.graph_to_gdfs(edi_graph)
-        edi_streets.to_file(edinburgh_streets_filepath, driver="GPKG")
-        edi_nodes.to_file(edinburgh_nodes_filepath, driver="GPKG")
+        # edi_streets.to_file(edinburgh_streets_filepath, driver="GPKG")
+        # edi_nodes.to_file(edinburgh_nodes_filepath, driver="GPKG")
 
-        tags = {'building': True, 'highway': True}
-        edi_geoms = ox.geometries_from_place(place, tags={"highway": True})
-        edi_geoms = edi_geoms.apply(lambda c: c.astype(str) if c.name != "geometry" else c, axis=0)
-        edi_geoms.to_file(edinburgh_geometries_filepath, driver="GPKG")
+        # tags = {'building': True, 'highway': True}
+        # edi_geoms = ox.geometries_from_place(place, tags={"highway": True})
+        # edi_geoms = edi_geoms.apply(lambda c: c.astype(str) if c.name != "geometry" else c, axis=0)
+        # edi_geoms.to_file(edinburgh_geometries_filepath, driver="GPKG")
 
     else:
         edi_graph = ox.load_graphml(edinburgh_graph_filepath)
-        edi_nodes = gpd.read_file(edinburgh_nodes_filepath)
-        edi_streets = gpd.read_file(edinburgh_streets_filepath)
-        edi_geoms = gpd.read_file(edinburgh_geometries_filepath)
+        # edi_nodes = gpd.read_file(edinburgh_nodes_filepath)
+        # edi_streets = gpd.read_file(edinburgh_streets_filepath)
+        # edi_geoms = gpd.read_file(edinburgh_geometries_filepath)
 
-        orig_node = list(edi_graph)[0]
-        dest_node = list(edi_graph)[-1]
+    orig_node = list(edi_graph)[0]
+    dest_node = list(edi_graph)[-1]
 
-        edi_graph = ox.project_graph(edi_graph, to_crs='epsg:3857')
-        route = ox.shortest_path(edi_graph, orig_node, dest_node, weight="length")
-        n = edi_graph.nodes[dest_node]['y']
-        s = edi_graph.nodes[orig_node]['y']
-        e = edi_graph.nodes[dest_node]['x']
-        w = edi_graph.nodes[orig_node]['x']
+    edi_graph = ox.project_graph(edi_graph, to_crs='epsg:3857')
+    route = ox.shortest_path(edi_graph, orig_node, dest_node, weight="length")
+    n = edi_graph.nodes[dest_node]['y']
+    s = edi_graph.nodes[orig_node]['y']
+    e = edi_graph.nodes[dest_node]['x']
+    w = edi_graph.nodes[orig_node]['x']
 
-        # fig, ax = plt.subplots()
-        back_img, extents = cx.bounds2img(w, s, e, n, source=cx.providers.CartoDB.Voyager)
-        # ax.imshow(back_img, extent=extents)
-        # ox.plot_graph_route(edi_graph, route, route_color="y", route_linewidth=6, node_size=0, ax=ax)
-        # # edi_graph.plot(ax=ax) # this will work for a geometries gdf, which you should do next.
-        # plt.show()
+    # fig, ax = plt.subplots()
+    # back_img, extents = cx.bounds2img(w, s, e, n, source=cx.providers.CartoDB.Voyager)
+    # ax.imshow(back_img, extent=extents)
+    ox.plot_graph_route(edi_graph, route, route_color="y", route_linewidth=6, node_size=0)
+    # edi_graph.plot(ax=ax) # this will work for a geometries gdf, which you should do next.
+    # plt.show()
 
-        return edi_graph, route, back_img, extents
+    return edi_graph, route#, back_img, extents
 
 
 # def maibn():

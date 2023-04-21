@@ -5,17 +5,18 @@ import pygame
 import sys
 from visualisation.PygameVisualiser.PygameRecorder import ScreenRecorder
 import config
+from visualisation.VisualisationUtils import Colours
 
 
 class Visualisation:
-    def __init__(self, world, background_image, extents):
+    def __init__(self, world, background_image=None, extents=None):
         pygame.init()
         self.zoom = 1
         self.previous_pos = None
         self.is_dragging = False
         self.initial_size = 1500, 750
         self.size = 1500, 750
-        self.world_size = extents[0]-extents[1], extents[2]-extents[3]
+        self.world_size = extents[0] - extents[1], extents[2] - extents[3]
         self.offset = 0, 0
         self.screen = pygame.display.set_mode(self.size)
         self.is_paused = False
@@ -23,18 +24,21 @@ class Visualisation:
         self.world = world
         self.tracking = False
 
-        self.bg_original = pygame.image.load(background_image)
-        self.bg_original= pygame.transform.rotate(self.bg_original, 180)
+        self.bg = None
 
-        self.bg = copy.deepcopy(self.bg_original)
-        self.bg_original_extents=extents
-        self.bg_position = [0,0]
-        # self.bg_original = pygame.image.load('./Assets/Images/bg.png')
+        if background_image is not None:
+            self.bg_original = pygame.image.load(background_image)
+            self.bg_original = pygame.transform.rotate(self.bg_original, 180)
 
-        # self.bg_original = pygame.transform.scale(self.bg_original, self.world_size)
-        self.bg = pygame.transform.smoothscale(self.bg, self.world_size)
+            self.bg = copy.deepcopy(self.bg_original)
+            self.bg_original_extents = extents
+            self.bg_position = [0, 0]
+            # self.bg_original = pygame.image.load('./Assets/Images/bg.png')
 
-        self.pixel_to_metre_ratio = 1 # currently 1 pixel per metre
+            # self.bg_original = pygame.transform.scale(self.bg_original, self.world_size)
+            self.bg = pygame.transform.smoothscale(self.bg, self.world_size)
+
+        self.pixel_to_metre_ratio = 1  # currently 1 pixel per metre
 
         if config.recording:
             self.recorder = ScreenRecorder(self.size[0], self.size[1], config.simulation_fps)
@@ -120,13 +124,14 @@ class Visualisation:
             self.offset = self.offset[0] * sc, self.offset[1] * sc
             self.world.update_scale(zoom, self.zoom)
             self.world.update_offset(self.offset)
-            self.zoom=zoom
-            self.pixel_to_metre_ratio=self.zoom
+            self.zoom = zoom
+            self.pixel_to_metre_ratio = self.zoom
 
             # update the image
-            size = (int(self.bg_original.get_width() * self.zoom), int(self.bg_original.get_height() * self.zoom))
-            self.bg = pygame.transform.smoothscale(self.bg_original, size)
-            self.bg_position = [self.bg_position[0] * sc, self.bg_position[1] * sc]
+            if self.bg is not None:
+                size = (int(self.bg_original.get_width() * self.zoom), int(self.bg_original.get_height() * self.zoom))
+                self.bg = pygame.transform.smoothscale(self.bg_original, size)
+                self.bg_position = [self.bg_position[0] * sc, self.bg_position[1] * sc]
 
         return False
 
@@ -153,7 +158,10 @@ class Visualisation:
     def draw_world(self):
         """draw the agents here"""
         # blit the background image here. after rotating 180 degrees?
-        self.screen.blit(self.bg, self.bg_position)
+        if self.bg is not None:
+            self.screen.blit(self.bg, self.bg_position)
+        else:
+            self.screen.fill(Colours.GREY)
         self.world.draw(self.screen)
 
     # endregion

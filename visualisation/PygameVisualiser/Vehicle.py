@@ -24,12 +24,12 @@ class Vehicle:
         self.v_lat = 0
         self.acc_long = 0
         self.direction = np.deg2rad(starting_direction_degrees)
-        self.vel_inc = 1 #ms^-2
-        self.max_acc_rate = 5 #ms^-2
+        self.vel_inc = 1  # ms^-2
+        self.max_acc_rate = 5  # ms^-2
         self.friction_rate = 0
-        self.turn_inc = np.deg2rad(.3) # rads per frame
-        self.turn_circle = 0 # rads per frame
-        self.max_turn_circle = np.deg2rad(3.5) # rads per frame
+        self.turn_inc = np.deg2rad(.3)  # rads per frame
+        self.turn_circle = 0  # rads per frame
+        self.max_turn_circle = np.deg2rad(3.5)  # rads per frame
         self.max_v = 30  # 30 is approximately 70mph
         self.dt = np.inf
 
@@ -39,9 +39,10 @@ class Vehicle:
             self.image_path = config.input_image_file_path + '/blue_car_top_down.png'
 
         # TODO: need access to the visualiser here?
+        self.pixel_to_metres_ratio = 1
         self.actual_vehicle_size = [6, 3]
-        self.draw_size = [self.actual_vehicle_size[0] * self.pixel_to_size_ratio,
-                          self.actual_vehicle_size[1] * self.pixel_to_size_ratio]
+        self.draw_size = [self.actual_vehicle_size[0] * self.pixel_to_metres_ratio,
+                          self.actual_vehicle_size[1] * self.pixel_to_metres_ratio]
 
         self.original_image = pygame.image.load(self.image_path)
         self.original_image = pygame.transform.rotate(self.original_image, 180)
@@ -83,13 +84,13 @@ class Vehicle:
             self.v_long = 0
 
         # TODO: this should be dependent on the friction, not magic numbers
-        turn_circle = self.turn_circle - np.sign(self.turn_circle)*self.turn_inc*0.9
+        turn_circle = self.turn_circle - np.sign(self.turn_circle) * self.turn_inc * 0.9
         if np.sign(self.turn_circle) != np.sign(turn_circle):
-            turn_circle=0
-        self.turn_circle=turn_circle
+            turn_circle = 0
+        self.turn_circle = turn_circle
 
     def draw(self, surface):
-        #TODO or do we pass the visualiser in here?
+        # TODO or do we pass the visualiser in here?
         ##### draw agent on surface#########
         self.update_offset(self.draw_offset)
         pos = (self.draw_x - self.image_offset[0], self.draw_y - self.image_offset[1])
@@ -108,14 +109,13 @@ class Vehicle:
         self.v_long = v_long
 
     def turn_wheel(self, direction):
-        direction= np.sign(direction)*min(abs(direction), self.turn_inc)
+        direction = np.sign(direction) * min(abs(direction), self.turn_inc)
         if self.turn_circle == 0:
             self.turn_circle = direction
             return
         turn_circle = direction + self.turn_circle
         turn_circle = np.sign(turn_circle) * min(self.max_turn_circle, abs(turn_circle))
         self.turn_circle = turn_circle
-
 
     def rotate(self, angle_increment_radians=0):
         self.direction += angle_increment_radians
@@ -135,18 +135,17 @@ class Vehicle:
         self.image = rotated_image
         self.image_offset = [self.image_offset[0] + offset[0], self.image_offset[1] + offset[1]]
 
-
     def update_offset(self, offset):
         self.draw_offset = offset
         self.draw_x = self.world_x * self.draw_scale + offset[0]
         self.draw_y = self.world_y * self.draw_scale + offset[1]
 
     def update_scale(self, scale):
-        #todo: or here?
+        # todo: or here?
         inc = scale / self.draw_scale
-        self.pixel_to_size_ratio *= inc
-        self.draw_size = [self.actual_vehicle_size[0] * self.pixel_to_size_ratio,
-                          self.actual_vehicle_size[1] * self.pixel_to_size_ratio]
+        self.pixel_to_metres_ratio *= inc
+        self.draw_size = [self.actual_vehicle_size[0] * self.pixel_to_metres_ratio,
+                          self.actual_vehicle_size[1] * self.pixel_to_metres_ratio]
         self.rotate()
         self.draw_scale = scale
 
