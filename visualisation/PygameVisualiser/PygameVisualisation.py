@@ -42,35 +42,25 @@ class Visualisation:
 
         self.pixel_to_metre_ratio = 1  # currently 1 pixel per metre
 
-        if config.recording:
-            self.recorder = ScreenRecorder(self.size[0], self.size[1], config.simulation_fps)
+        if config.RECORDING:
+            self.recorder = ScreenRecorder(self.size[0], self.size[1], config.SIMULATION_FPS)
 
     # region Game logic
-    def run(self):
-        finished = False
-        while True:
-            # check events
-            for event in pygame.event.get():
-                finished = self.handle_events(event)
-            if finished:
-                break
-
-            self.run_single_frame()
-
-        if config.recording:
+    def update(self):
+        for event in pygame.event.get():
+            finished = self.handle_events(event)
+        self.draw_single_frame()
+        if config.RECORDING:
             # Stop the screen recording
             self.recorder.end_recording()
 
-        self.quit_display_and_game()
 
-    def quit_display_and_game(self):
+    def quit(self):
         pygame.display.quit()
         pygame.quit()
         sys.exit()
 
-    def run_single_frame(self):
-        dt = self.clock.tick(config.simulation_fps)
-
+    def draw_single_frame(self):
         if self.is_paused:
             return
 
@@ -85,14 +75,13 @@ class Visualisation:
         if keys[pygame.K_RIGHT]:
             self.world.ego_vehicle.send_message("r")
 
-        self.update_world(dt)
         self.draw_world()
 
         if self.tracking:
             self.recentre_on_ego_agent()
 
         pygame.display.flip()
-        if config.recording:
+        if config.RECORDING:
             self.recorder.capture_frame(self.screen)
 
     def handle_events(self, event) -> bool:
@@ -102,7 +91,7 @@ class Visualisation:
             if event.key == pygame.K_SPACE:
                 self.is_paused = not self.is_paused
             elif event.key == pygame.K_ESCAPE:
-                self.quit_display_and_game()
+                self.quit()
             elif event.key == pygame.K_t:
                 self.tracking = not self.tracking
 
@@ -154,8 +143,6 @@ class Visualisation:
 
     # region Draw functions
 
-    def update_world(self, dt):
-        self.world.update(dt)
 
     def draw_world(self):
         """draw the agents here"""

@@ -1,12 +1,14 @@
 import cv2
 from stable_baselines3.common.env_checker import check_env
 
+import config
 from RLEnvironment import RLEnvironment
-from OwnWork.SimulationEnv.CarlaConnector import CarlaConnection
+from model.Environment.SimulationEnvironment import SimulationEnvironment
+from visualisation.PygameVisualiser.PygameVisualisation import Visualisation
 
-connection = CarlaConnection()
-client, world = connection.setup()
-env = RLEnvironment(client, world)
+simEnv = SimulationEnvironment()
+v = Visualisation(simEnv)
+env = RLEnvironment(simEnv, v)
 
 # It will check your custom environment and output additional warnings if needed
 check_env(env)
@@ -27,4 +29,3 @@ for episode in range(episodes):
         if i > 1000 or k == 27:
             done = True
 
-env.quit()

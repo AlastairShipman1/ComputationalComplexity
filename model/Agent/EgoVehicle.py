@@ -4,8 +4,9 @@ import pygame
 import shapely
 
 from model.Agent.Vehicle import Vehicle, Actor
-import visualisation.PygameVisualiser.Predictions as Predictions
-from visualisation.VisualisationUtils import Colours, is_left, angle_between
+import model.Agent.Predictions as Predictions
+from model.ModelUtils import angle_between, is_left
+from visualisation.VisualisationUtils import Colours
 import config
 
 """
@@ -17,7 +18,7 @@ Angles in radians, except for pygame rotations
 
 class EgoVehicle(Vehicle):
     def __init__(self, world=None):
-        image_path = config.input_image_file_path + '/red_car_top_down.png'
+        image_path = config.INPUT_IMAGE_FP + '/red_car_top_down.png'
         super().__init__(image_path=image_path, world=world)
 
         self.world = world

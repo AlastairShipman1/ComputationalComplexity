@@ -1,6 +1,7 @@
 import numpy as np
 import pygame
 import config
+from model.ModelUtils import is_left
 
 """ 
 File for agents
@@ -36,9 +37,8 @@ class Vehicle:
         # drawing/visualisation variables
         self.image_path = image_path
         if image_path is None:
-            self.image_path = config.input_image_file_path + '/blue_car_top_down.png'
+            self.image_path = config.INPUT_IMAGE_FP + '/blue_car_top_down.png'
 
-        # TODO: need access to the visualiser here?
         self.pixel_to_metres_ratio = 1
         self.actual_vehicle_size = [6, 3]
         self.draw_size = [self.actual_vehicle_size[0] * self.pixel_to_metres_ratio,
@@ -56,6 +56,13 @@ class Vehicle:
         self.world_y = -self.image_offset[1] + initial_position[1]
         self.draw_x = self.world_x
         self.draw_y = self.world_y
+
+    def get_velocity(self):
+        return [self.v_long*np.cos(self.direction), self.v_long*np.sin(self.direction)]
+
+    def get_position(self):
+        return [self.world_x, self.world_y]
+
 
     # region utils
     def move(self):
@@ -90,7 +97,6 @@ class Vehicle:
         self.turn_circle = turn_circle
 
     def draw(self, surface):
-        # TODO or do we pass the visualiser in here?
         ##### draw agent on surface#########
         self.update_offset(self.draw_offset)
         pos = (self.draw_x - self.image_offset[0], self.draw_y - self.image_offset[1])
@@ -141,7 +147,6 @@ class Vehicle:
         self.draw_y = self.world_y * self.draw_scale + offset[1]
 
     def update_scale(self, scale):
-        # todo: or here?
         inc = scale / self.draw_scale
         self.pixel_to_metres_ratio *= inc
         self.draw_size = [self.actual_vehicle_size[0] * self.pixel_to_metres_ratio,
@@ -154,6 +159,19 @@ class Vehicle:
         self.original_image = pygame.transform.rotate(self.original_image, 180)
         self.image = pygame.transform.smoothscale(self.original_image, self.draw_size)
         self.image_offset = self.image.get_rect().center
+
+    def is_left(self, p):
+        self.vehicle_forward_point = [
+            self.world_x + np.cos(self.direction),
+            self.world_y - np.sin(self.direction)]
+        return is_left([self.world_x, self.world_y], self.vehicle_forward_point, p)
+
+    def pov_distances(self, point, angle):
+        dist = np.sqrt((point[0] - self.world_x) ** 2 + (point[1] - self.world_y) ** 2)
+        d_lat = dist * np.sin(angle)
+        d_long = dist * np.cos(angle)
+        return d_lat, d_long
+
     # endregion
 
 

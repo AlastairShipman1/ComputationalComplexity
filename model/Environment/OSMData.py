@@ -17,10 +17,10 @@ def main():
 
 
 def get_edinburgh():
-    edinburgh_graph_filepath = config.input_gis_file_path + "Edinburgh.graphml"
-    edinburgh_nodes_filepath =  config.input_gis_file_path + "Edinburgh_nodes.gpkg"
-    edinburgh_streets_filepath = config.input_gis_file_path + "Edinburgh_streets.gpkg"
-    edinburgh_geometries_filepath =  config.input_gis_file_path + "Edinburgh_geometries.gpkg"
+    edinburgh_graph_filepath = config.INPUT_GIS_FP + "Edinburgh.graphml"
+    edinburgh_nodes_filepath = config.INPUT_GIS_FP + "Edinburgh_nodes.gpkg"
+    edinburgh_streets_filepath = config.INPUT_GIS_FP + "Edinburgh_streets.gpkg"
+    edinburgh_geometries_filepath = config.INPUT_GIS_FP + "Edinburgh_geometries.gpkg"
     all_filepaths = [edinburgh_graph_filepath, edinburgh_nodes_filepath, edinburgh_streets_filepath,
                      edinburgh_geometries_filepath]
 
