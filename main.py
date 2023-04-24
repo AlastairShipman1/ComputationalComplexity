@@ -1,6 +1,6 @@
 from visualisation.PygameVisualiser.PygameVisualisation import Visualisation
-from visualisation.PygameVisualiser.World import World
-from visualisation.PygameVisualiser.OSMData import get_edinburgh
+from model.Environment.SimulationEnvironment import SimulationEnvironment
+
 
 #
 # def check_esc():
@@ -15,7 +15,7 @@ def main():
     road_network, optimal_route, background_img, background_img_extents = None, None, None, None
     # road_network, optimal_route, background_img, background_img_extents = get_edinburgh()
 
-    world = World(road_network, optimal_route)
+    world = SimulationEnvironment(road_network, optimal_route)
     v = Visualisation(world, background_img, background_img_extents)
     v.run()
 

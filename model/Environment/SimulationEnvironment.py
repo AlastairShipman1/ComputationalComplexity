@@ -1,14 +1,10 @@
-import copy
-
 import numpy as np
 import pygame
 import shapely
 import random
 import config
-from visualisation.VisualisationUtils import Colours
-from visualisation.PygameVisualiser.Vehicle import Vehicle, NormalVehicle
-from visualisation.PygameVisualiser.EgoVehicle import EgoVehicle
-from visualisation.PygameVisualiser.OSMData import get_edinburgh
+from model.Agent.Vehicle import NormalVehicle
+from model.Agent.EgoVehicle import EgoVehicle
 from shapely.geometry import Polygon
 from model.LocomotionUtilityClasses.Waypoint import Waypoint
 
@@ -18,9 +14,10 @@ Units in metric
 """
 
 
-class World:
+class SimulationEnvironment:
     def __init__(self, road_network=None, optimal_route=None):
 
+        self.draw_offset = 0,0
         build_1_path = config.input_image_file_path + 'Building_topdown_1.png'
         build_2_path = config.input_image_file_path + 'Building_topdown_2.png'
         build_3_path = config.input_image_file_path + 'Building_topdown_3.png'
@@ -81,6 +78,7 @@ class World:
         self.pygame_agents.append(self.ego_vehicle)
 
     def update_offset(self, offset):
+        self.draw_offset =offset
         for agent in self.pygame_agents:
             agent.update_offset(offset)
 
@@ -98,8 +96,8 @@ class World:
 
     def draw(self, surface):
         for i, obs in enumerate(self.obstacle_images):
-            x=self.obstacle_locations[i][0] + self.offset[0]
-            y=self.obstacle_locations[i][1] + self.offset[1]
+            x=self.obstacle_locations[i][0] + self.draw_offset[0]
+            y=self.obstacle_locations[i][1] + self.draw_offset[1]
             surface.blit(obs,(x,y))
         for agent in self.pygame_agents:
             agent.draw(surface)

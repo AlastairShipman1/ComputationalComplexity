@@ -3,9 +3,9 @@ from shapely.geometry import CAP_STYLE, LineString
 import pygame
 import shapely
 
-from visualisation.PygameVisualiser.Vehicle import Vehicle, Actor
+from model.Agent.Vehicle import Vehicle, Actor
 import visualisation.PygameVisualiser.Predictions as Predictions
-from visualisation.VisualisationUtils import Colours, is_left, unit_vector, angle_between
+from visualisation.VisualisationUtils import Colours, is_left, angle_between
 import config
 
 """

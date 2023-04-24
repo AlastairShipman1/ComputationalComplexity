@@ -1,8 +1,4 @@
-import time
-import random
 import numpy as np
-import pygame
-import carla
 import gym
 from gym import spaces
 
@@ -13,7 +9,7 @@ import OwnWork.SimulationEnv.Simulation_config as config
 from OwnWork.SimulationEnv.Traffic import TrafficObject
 
 
-class CarlaEnvironment(gym.Env):
+class RLEnvironment(gym.Env):
 
     def __init__(self, client, world) -> None:
         self.client = client

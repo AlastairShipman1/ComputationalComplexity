@@ -1,12 +1,12 @@
 import cv2
 from stable_baselines3.common.env_checker import check_env
 
-from Environment import CarlaEnvironment
+from RLEnvironment import RLEnvironment
 from OwnWork.SimulationEnv.CarlaConnector import CarlaConnection
 
 connection = CarlaConnection()
 client, world = connection.setup()
-env = CarlaEnvironment(client, world)
+env = RLEnvironment(client, world)
 
 # It will check your custom environment and output additional warnings if needed
 check_env(env)

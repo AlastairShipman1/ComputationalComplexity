@@ -16,7 +16,9 @@ class Visualisation:
         self.is_dragging = False
         self.initial_size = 1500, 750
         self.size = 1500, 750
-        self.world_size = extents[0] - extents[1], extents[2] - extents[3]
+        self.world= self.size
+        if extents is not None:
+            self.world_size = extents[0] - extents[1], extents[2] - extents[3]
         self.offset = 0, 0
         self.screen = pygame.display.set_mode(self.size)
         self.is_paused = False
