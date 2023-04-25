@@ -14,15 +14,15 @@ def RL_analysis(simEnv, visuals):
         print(f"Can't make RL environmen: {e}")
         return
 
-    TOTAL_TIMESTEPS = 20_000
+    TOTAL_TIMESTEPS = 200
     if config.RL_MODE == config.RL_Modes.Train:
         model = PPO('MlpPolicy', RLenv, verbose=1, tensorboard_log=config.LOG_PATH)
-        for i in range(150):
+        for i in range(15):
             model.learn(total_timesteps=TOTAL_TIMESTEPS, reset_num_timesteps=False, tb_log_name="PPO")
-            model.save(f"{config.RL_Modes}/{TOTAL_TIMESTEPS * i}")
+            model.save(f"{config.MODEL_PATH}/{TOTAL_TIMESTEPS * i}")
     else:
         # you should choose which model to load at this point
-        model = PPO.load(f"{config.MODEL_PATH}/2500000", env=RLenv)
+        model = PPO.load(f"{config.MODEL_PATH}/8000", env=RLenv)
         # Game loop
         done = False
         obs = RLenv.reset()
@@ -52,6 +52,8 @@ def main():
             RL_analysis(simEnv, v)
         elif config.INTERFACE_MODE== config.Interface_Modes.Manual:
             manual_mode(simEnv, v)
+    except Exception as e:
+        print(f"Error in Main: {e}")
     finally:
         v.quit()
 

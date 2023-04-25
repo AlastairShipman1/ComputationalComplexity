@@ -8,6 +8,7 @@ from model.Agent.RLEgoVehicle import RLEgoVehicle
 
 class RLEnvironment(gym.Env):
     def __init__(self, world, visualiser) -> None:
+
         self.visualiser = visualiser
         self.world = world
         self.ego_vehicle = RLEgoVehicle()
@@ -73,7 +74,6 @@ class RLEnvironment(gym.Env):
         self.obs = self.get_observation()
 
         self.reward = self.get_reward()
-
         if self.timesteps >= 10000:
             self.done = True
 

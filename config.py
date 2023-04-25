@@ -19,7 +19,7 @@ OBSTACLES_ON = False
 OBSTACLE_NUMBER = 3
 
 TRAFFIC_ON = False
-INTERFACE_MODE = Interface_Modes.Manual
+INTERFACE_MODE = Interface_Modes.RL
 RL_MODE = RL_Modes.Train
 
 VEHICLE_NUMBER = 20

@@ -26,6 +26,6 @@ for episode in range(episodes):
         k = cv2.waitKey(1)
         # you can do this in pygame as well/instead if you want
         i += 1
-        if i > 1000 or k == 27:
+        if i > 100 or k == 27:
             done = True
 
