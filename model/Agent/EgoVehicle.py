@@ -29,6 +29,9 @@ class EgoVehicle(Vehicle):
         self.predictions_slow = []
         self.predicter_slow = Predictions.ConstCurvaturePredicter(self, self.past_positions_length)
         self.predicter_fast = Predictions.ConstCurvaturePredicter(self, 5)
+
+        self.self_driving = config.EGO_VEHICLE_SELF_DRIVE
+        self.perceiving = config.EGO_VEHICLE_PERCEIVE
         self.next_wp_id = -1
         self.next_wp = None
 
@@ -186,9 +189,21 @@ class EgoVehicle(Vehicle):
         if string == "r":
             self.override_turn = -np.sign(self.v_long) * self.turn_inc
 
+        if string == "m":
+            self.self_driving = not self.self_driving
+
     def update(self, dt):
         super().update(dt)
-        self.compute_desired_motion()
+
+        if self.perceiving:
+            self.perceive()
+
+        if self.self_driving:
+            self.compute_desired_motion()
+        else:
+            self.computed_acc = 0
+            self.computed_turn = 0
+
         self.collate_information()
         self.accelerate(self.overall_desired_acceleration)
         self.turn_wheel(self.overall_desired_turn_circle_change)
@@ -201,35 +216,48 @@ class EgoVehicle(Vehicle):
 
     # region class specific functions
 
-    def compute_desired_motion(self):
-        # perception
+    def perceive(self):
         self.shoot_rays()
         self.calculate_unknown_areas()
         self.calculate_predicted_motion()
         self.calculate_closest_unknown_points()
         self.assess_closest_points()
 
+    def compute_desired_motion(self):
+
         # controller
-        self.calculate_desired_angle()
         self.calculate_desired_speed()
+        self.calculate_desired_acc()
+        self.calculate_desired_turn()
 
         # update waypoint if necessary
         self.check_waypoint()
 
+    def calculate_desired_acc(self):
+        accel = abs(self.computed_v_long) > abs(self.v_long)
+        self.computed_acc = max(self.computed_v_long - abs(self.v_long), self.vel_inc) * (2 * int(accel) - 1)
+
+    def calculate_desired_turn(self):
+        if self.next_wp is None:
+            self.next_wp = self.find_first_waypoint()
+            self.next_wp_id = self.next_wp.guid
+            return
+
+        self.computed_turn = self.delta_direction_to_point(self.next_wp.position)
+
     def collate_information(self):
-
-        self.overall_desired_turn_circle_change = self.computed_angle
-        if self.override_turn is not None:
-            self.overall_desired_turn_circle_change = self.override_turn
-            self.override_turn = None
-
-        if abs(self.overall_desired_turn_circle_change) > 2 * self.turn_inc:
-            self.computed_v_long *= 0.5
-        self.overall_desired_acceleration = self.computed_v_long - self.v_long
-
+        self.overall_desired_acceleration = self.computed_acc
         if self.override_acc is not None:
             self.overall_desired_acceleration = self.override_acc
             self.override_acc = None
+
+        self.overall_desired_turn_circle_change = self.computed_turn
+        if self.override_turn is not None:
+            self.overall_desired_turn_circle_change = self.override_turn
+            self.override_turn = None
+        # if abs(self.overall_desired_turn_circle_change) > 2 * self.turn_inc:
+        #     self.computed_v_long *= 0.5
+        # self.overall_desired_acceleration = self.computed_v_long - self.v_long
 
     def calculate_desired_speed(self):
         self.computed_v_long = self.max_v
@@ -241,7 +269,7 @@ class EgoVehicle(Vehicle):
             if self.time_to_col < self.latency + brake_time:
                 self.computed_v_long = self.v_long - np.sign(self.v_long) * self.vel_inc
 
-    def angle_to_point(self, point):
+    def delta_direction_to_point(self, point):
         vector_1 = [(point[0] - self.world_x), (point[1] - self.world_y)]
         vector_2 = [np.cos(self.direction), -np.sin(self.direction)]
         angle = angle_between(vector_1, vector_2)
@@ -284,7 +312,7 @@ class EgoVehicle(Vehicle):
             # d_lat and angle are positive if the obstacle point is to the left of the vehicle, negative to the right
             # this is consistent if driving backwards (note that the forward direction is maintained in this case)
 
-            angle = self.angle_to_point(p)
+            angle = self.delta_direction_to_point(p)
             d_lat, d_long = self.pov_distances(p, angle)
 
             if d_long == 0:
@@ -349,7 +377,7 @@ class EgoVehicle(Vehicle):
             # closest_points = nearest_points(g, p)
             pts = g.exterior.coords[:-1]
             for pt in pts:
-                angle = self.angle_to_point(pt)
+                angle = self.delta_direction_to_point(pt)
 
                 if abs(angle) > np.pi / 2 and np.sign(self.v_long) > 0:
                     # pygame.draw.circle(surface, Colours.RED, (point.x, point.y), 5)
@@ -407,7 +435,7 @@ class EgoVehicle(Vehicle):
         self.ray_endpoints = []
 
         angle = self.direction
-        number_rays = 100
+        number_rays = 10
         for i in range(number_rays):
             # create a line between the car and the max length
             # cycle through all obstacles
@@ -464,14 +492,6 @@ class EgoVehicle(Vehicle):
     # endregion
 
     # region Controller
-    def calculate_desired_angle(self):
-        if self.next_wp is None:
-            self.next_wp = self.find_first_waypoint()
-            self.next_wp_id = self.next_wp.guid
-            return
-
-        self.computed_angle = self.angle_to_point(self.next_wp.position)
-
     def check_waypoint(self):
         if self.next_wp is None:
             self.next_wp = self.find_first_waypoint()

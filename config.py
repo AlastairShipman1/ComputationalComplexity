@@ -10,22 +10,23 @@ class RL_Modes(Enum):
     Train = auto()
     Test = auto()
 
-
+PROFILING=True
 RECORDING = False
-
 SIMULATION_FPS = 40
 
 OBSTACLES_ON = False
 OBSTACLE_NUMBER = 3
-
+EGO_VEHICLE_SELF_DRIVE = False
+EGO_VEHICLE_PERCEIVE = False
 TRAFFIC_ON = False
-INTERFACE_MODE = Interface_Modes.RL
+
+INTERFACE_MODE = Interface_Modes.Manual
 RL_MODE = RL_Modes.Train
 
 VEHICLE_NUMBER = 20
 PEDESTRIAN_NUMBER = 10 # TODO: haven't implemented this yet. look at the generate_traffic.py example if you want to
 
-DISPLAY_ON = True
+DISPLAY_ON = False
 if INTERFACE_MODE == Interface_Modes.RL:
     if RL_MODE == RL_Modes.Train:
         DISPLAY_ON = False

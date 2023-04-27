@@ -58,22 +58,10 @@ class Visualisation:
     def quit(self):
         pygame.display.quit()
         pygame.quit()
-        sys.exit()
 
     def draw_single_frame(self):
         if self.is_paused:
             return
-
-        keys = pygame.key.get_pressed()  # checking pressed keys
-
-        if keys[pygame.K_UP]:
-            self.world.ego_vehicle.send_message("u")
-        if keys[pygame.K_DOWN]:
-            self.world.ego_vehicle.send_message("d")
-        if keys[pygame.K_LEFT]:
-            self.world.ego_vehicle.send_message("l")
-        if keys[pygame.K_RIGHT]:
-            self.world.ego_vehicle.send_message("r")
 
         self.draw_world()
 

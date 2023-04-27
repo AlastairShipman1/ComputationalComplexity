@@ -1,3 +1,4 @@
+import pygame
 from stable_baselines3 import PPO
 
 from RL.RLEnvironment import RLEnvironment
@@ -32,13 +33,19 @@ def RL_analysis(simEnv, visuals):
 
 
 def manual_mode(simEnv, v= None):
+    t=0
     done = False
+    pygame.init()
     control_obj = Control.PygameControlObject(simEnv)
+
     while not done:
+        t+=1
         done = control_obj.process_control()
-        simEnv.update(50) # milliseconds
+        simEnv.update(100) # milliseconds
         if config.DISPLAY_ON:
             v.update()
+        if t==1000:
+            done = True
     if v is not None:
         v.quit()
 
@@ -46,7 +53,9 @@ def main():
     road_network, optimal_route, background_img, background_img_extents = None, None, None, None
     # road_network, optimal_route, background_img, background_img_extents = get_edinburgh()
     simEnv = SimulationEnvironment(road_network, optimal_route)
-    v = Visualisation(simEnv, background_img, background_img_extents)
+    v=None
+    if config.DISPLAY_ON:
+        v = Visualisation(simEnv, background_img, background_img_extents)
     try:
         if config.INTERFACE_MODE== config.Interface_Modes.RL:
             RL_analysis(simEnv, v)
@@ -55,7 +64,8 @@ def main():
     except Exception as e:
         print(f"Error in Main: {e}")
     finally:
-        v.quit()
+        if v is not None:
+            v.quit()
 
 
 if __name__ == "__main__":

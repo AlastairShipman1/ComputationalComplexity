@@ -23,16 +23,14 @@ class Vehicle:
         self.world = world
         self.v_long = 0
         self.v_lat = 0
-        self.acc_long = 0
         self.direction = np.deg2rad(starting_direction_degrees)
         self.vel_inc = 1  # ms^-2
         self.max_acc_rate = 5  # ms^-2
-        self.friction_rate = 0
         self.turn_inc = np.deg2rad(.3)  # rads per frame
         self.turn_circle = 0  # rads per frame
         self.max_turn_circle = np.deg2rad(3.5)  # rads per frame
         self.max_v = 30  # 30 is approximately 70mph
-        self.dt = np.inf
+        self.dt = np.inf # this is in milliseconds, so need to update all move functions
 
         # drawing/visualisation variables
         self.image_path = image_path
@@ -44,12 +42,16 @@ class Vehicle:
         self.draw_size = [self.actual_vehicle_size[0] * self.pixel_to_metres_ratio,
                           self.actual_vehicle_size[1] * self.pixel_to_metres_ratio]
 
-        self.original_image = pygame.image.load(self.image_path)
-        self.original_image = pygame.transform.rotate(self.original_image, 180)
-        self.image = pygame.transform.smoothscale(self.original_image, self.draw_size)
-        self.rotate()
+        self.original_image = None
+        self.image= None
+        self.image_offset = [0,0]
+        if config.DISPLAY_ON:
+            self.original_image = pygame.image.load(self.image_path)
+            self.original_image = pygame.transform.rotate(self.original_image, 180)
+            self.image = pygame.transform.smoothscale(self.original_image, self.draw_size)
+            self.rotate()
 
-        self.image_offset = self.image.get_rect().center
+            self.image_offset = self.image.get_rect().center
         self.draw_offset = 0, 0
         self.draw_scale = 1
         self.world_x = -self.image_offset[0] + initial_position[0]
@@ -82,13 +84,17 @@ class Vehicle:
         self.friction()
 
     def friction(self):
-        # TODO: this should be an actual physical air resistance model.
-        friction_scaler = 1
-        if abs(self.v_long) < 15:
-            friction_scaler = 1.5
-        self.v_long -= np.sign(self.v_long) * self.friction_rate * friction_scaler
-        if abs(self.v_long) < 1:
-            self.v_long = 0
+        # this should be based on an actual physical air resistance model,
+        # and friction should maximise when speed is max_v, and at this point, it should equal the vel_inc value
+
+        # if dt is too low, then the simulation takes far too long for the car to gets going.
+        if abs(self.v_long) > self.vel_inc*self.dt/1000:
+            k = 1 - np.power((self.max_v-abs(self.v_long))/self.max_v, 0.99) # ratio of 0 (zero speed) -1 (max speed)
+            v_delta = self.vel_inc * k * self.dt/1000
+            self.v_long -= np.sign(self.v_long)*v_delta
+        elif abs(self.v_long) < 0.999*self.vel_inc*self.dt/1000:
+            self.v_long=0
+            return
 
         # TODO: this should be dependent on the friction, not magic numbers
         turn_circle = self.turn_circle - np.sign(self.turn_circle) * self.turn_inc * 0.9
@@ -98,6 +104,19 @@ class Vehicle:
 
     def draw(self, surface):
         ##### draw agent on surface#########
+
+        self._create_image_instance()
+
+        previous_image_center = self.image.get_rect().center
+        rotated_image = pygame.transform.rotate(self.image, np.rad2deg(self.direction))
+        rotated_image_center = rotated_image.get_rect().center
+        offset = [rotated_image_center[0] - previous_image_center[0],
+                  rotated_image_center[1] - previous_image_center[1]]
+
+        self.image = rotated_image
+        self.image_offset = [self.image_offset[0] + offset[0], self.image_offset[1] + offset[1]]
+
+
         self.update_offset(self.draw_offset)
         pos = (self.draw_x - self.image_offset[0], self.draw_y - self.image_offset[1])
         surface.blit(self.image, pos)
@@ -106,12 +125,13 @@ class Vehicle:
         ...
 
     def accelerate(self, amount):
+        # accommodate the fact that dt is in milliseconds
+        dt_seconds = self.dt/1000
         if abs(amount) > self.vel_inc:
             amount = np.sign(amount) * self.vel_inc
-        v_long = self.v_long + amount
+        v_long = self.v_long + amount*dt_seconds
         if abs(v_long) > abs(self.max_v):
             v_long = np.sign(self.v_long) * self.max_v
-        self.acc_long = (v_long - self.v_long) / self.dt
         self.v_long = v_long
 
     def turn_wheel(self, direction):
@@ -130,16 +150,6 @@ class Vehicle:
         if abs(self.direction) > 2 * np.pi:
             self.direction = self.direction % (2 * np.pi)
 
-        self._create_image_instance()
-
-        previous_image_center = self.image.get_rect().center
-        rotated_image = pygame.transform.rotate(self.image, np.rad2deg(self.direction))
-        rotated_image_center = rotated_image.get_rect().center
-        offset = [rotated_image_center[0] - previous_image_center[0],
-                  rotated_image_center[1] - previous_image_center[1]]
-
-        self.image = rotated_image
-        self.image_offset = [self.image_offset[0] + offset[0], self.image_offset[1] + offset[1]]
 
     def update_offset(self, offset):
         self.draw_offset = offset

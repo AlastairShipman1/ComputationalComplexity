@@ -12,25 +12,32 @@ class PygameControlObject:
     # and define the control state
 
     def process_control(self):
+        keys = pygame.key.get_pressed()  # checking pressed keys
+
+        if keys[pygame.K_UP]:
+            self.env.ego_vehicle.send_message("u")
+        if keys[pygame.K_DOWN]:
+            self.env.ego_vehicle.send_message("d")
+        if keys[pygame.K_LEFT]:
+            self.env.ego_vehicle.send_message("l")
+        if keys[pygame.K_RIGHT]:
+            self.env.ego_vehicle.send_message("r")
+
         for event in pygame.event.get():
-            self.parse_control(event)
+            done = self.parse_control(event)
+            if done:
+                return True
+        return False
 
 
     def parse_control(self, event):
         if event.type == pygame.QUIT:
             return True
         if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_UP:
-                self.env.ego_vehicle.send_message('u')
-            if event.key == pygame.K_DOWN:
-                self.env.ego_vehicle.send_message('d')
-            if event.key == pygame.K_RIGHT:
-                self.env.ego_vehicle.send_message('l')
-            if event.key == pygame.K_LEFT:
-                self.env.ego_vehicle.send_message('r')
-            elif event.key == pygame.K_ESCAPE:
+            if event.key == pygame.K_ESCAPE:
                 return True
-
+            if event.key == pygame.K_m:
+                self.env.ego_vehicle.send_message('m')
         return False
 
 class KeyboardControlObject:
