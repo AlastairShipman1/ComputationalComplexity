@@ -121,6 +121,12 @@ class Vehicle:
         pos = (self.draw_x - self.image_offset[0], self.draw_y - self.image_offset[1])
         surface.blit(self.image, pos)
 
+    def convert_world_to_draw_coords(self, coord):
+        x = coord[0] * self.draw_scale + self.draw_offset[0]
+        y = coord[1] * self.draw_scale + self.draw_offset[1]
+        return x, y
+
+
     def send_message(self, string):
         ...
 

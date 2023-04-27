@@ -41,7 +41,7 @@ def manual_mode(simEnv, v= None):
     while not done:
         t+=1
         done = control_obj.process_control()
-        simEnv.update(100) # milliseconds
+        simEnv.update(config.DELTA_TIME_MS) # milliseconds
         if config.DISPLAY_ON:
             v.update()
         if t==1000:

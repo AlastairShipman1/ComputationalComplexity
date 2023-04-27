@@ -53,7 +53,7 @@ class RLEnvironment(gym.Env):
         return self.obs
 
     def step(self, action=None):
-        self.world.update(50) # milliseconds
+        self.world.update(config.DELTA_TIME_MS) # milliseconds
 
         if self.display_on:
             self.visualiser.update()

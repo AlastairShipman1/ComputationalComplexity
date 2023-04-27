@@ -1,7 +1,5 @@
 import numpy as np
-
 from model.Agent.Vehicle import Vehicle
-from model.ModelUtils import angle_between
 import config
 
 """
@@ -17,15 +15,6 @@ class RLEgoVehicle(Vehicle):
         super().__init__(image_path=image_path, world=world)
         self.world = world
 
-    # region drawing functions
-    def draw(self, surface):
-        super().draw(surface)
-
-    def convert_world_to_draw_coords(self, coord):
-        x = coord[0] * self.draw_scale + self.draw_offset[0]
-        y = coord[1] * self.draw_scale + self.draw_offset[1]
-        return x, y
-    # endregion
 
     # region overriding functions
     def send_message(self, string):
@@ -40,8 +29,6 @@ class RLEgoVehicle(Vehicle):
         if string == "r":
             self.turn_wheel(-np.sign(self.v_long) * self.turn_inc)
 
-    def update(self, dt):
-        super().update(dt)
     # endregion
 
     # region class specific functions
@@ -57,9 +44,5 @@ class RLEgoVehicle(Vehicle):
             self.send_message('r')
         if steer == 0:
             self.send_message('l')
-
-
-
-
    # endregion
 

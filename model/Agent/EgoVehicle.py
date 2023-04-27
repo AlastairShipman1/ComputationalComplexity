@@ -132,11 +132,6 @@ class EgoVehicle(Vehicle):
             pygame.draw.circle(surface, Colours.BLUE, collision_actor_draw_coords, 5)
         pygame.draw.aaline(surface, Colours.BLUE, unknown_pt_draw_coords, collision_actor_draw_coords)
 
-    def convert_world_to_draw_coords(self, coord):
-        x = coord[0] * self.draw_scale + self.draw_offset[0]
-        y = coord[1] * self.draw_scale + self.draw_offset[1]
-        return x, y
-
     def draw_closest_unknown_points(self, surface):
         for point in self.closest_unknown_points:
             pt = self.convert_world_to_draw_coords([point[0], point[1]])
@@ -279,18 +274,6 @@ class EgoVehicle(Vehicle):
             angle = -angle
 
         return angle
-
-    def pov_distances(self, point, angle):
-        dist = np.sqrt((point[0] - self.world_x) ** 2 + (point[1] - self.world_y) ** 2)
-        d_lat = dist * np.sin(angle)
-        d_long = dist * np.cos(angle)
-        return d_lat, d_long
-
-    def is_left(self, p):
-        self.vehicle_forward_point = [
-            self.world_x + np.cos(self.direction),
-            self.world_y - np.sin(self.direction)]
-        return is_left([self.world_x, self.world_y], self.vehicle_forward_point, p)
 
     def assess_closest_points(self):
         self.actor_point = None
