@@ -44,7 +44,7 @@ def manual_mode(simEnv, v= None):
         simEnv.update(config.DELTA_TIME_MS) # milliseconds
         if config.DISPLAY_ON:
             v.update()
-        if t==1000:
+        if t==100000:
             done = True
     if v is not None:
         v.quit()

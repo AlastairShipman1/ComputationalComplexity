@@ -1,7 +1,6 @@
 import os
 from enum import Enum, auto
 
-
 class Interface_Modes(Enum):
     Manual = auto()
     RL = auto()
@@ -10,30 +9,37 @@ class RL_Modes(Enum):
     Train = auto()
     Test = auto()
 
-PROFILING=True
+############################
+## Simulation meta config ##
+############################
+PROFILING = False
 RECORDING = False
-SIMULATION_FPS = 40
 DELTA_TIME_MS = 50
+SIMULATION_FPS = int(1000/DELTA_TIME_MS)
+INTERFACE_MODE = Interface_Modes.Manual
+RL_MODE = RL_Modes.Train
 
+DISPLAY_ON = True
+if INTERFACE_MODE == Interface_Modes.RL:
+    if RL_MODE == RL_Modes.Train:
+        DISPLAY_ON = False
+
+#############################
+## World simulation config ##
+#############################
 OBSTACLES_ON = False
 OBSTACLE_NUMBER = 3
 EGO_VEHICLE_SELF_DRIVE = False
 EGO_VEHICLE_PERCEIVE = False
 TRAFFIC_ON = False
-
-INTERFACE_MODE = Interface_Modes.RL
-RL_MODE = RL_Modes.Train
-
 VEHICLE_NUMBER = 20
 PEDESTRIAN_NUMBER = 10 # TODO: haven't implemented this yet. look at the generate_traffic.py example if you want to
 
-DISPLAY_ON = False
-if INTERFACE_MODE == Interface_Modes.RL:
-    if RL_MODE == RL_Modes.Train:
-        DISPLAY_ON = False
 
 
-
+#######################################
+## Ensure that directories are valid ##
+#######################################
 project_path = os.path.dirname(os.path.realpath(__file__))
 INPUT_FP = f"{project_path}/input_data"
 OUTPUT_FP = f"{project_path}/output_data"

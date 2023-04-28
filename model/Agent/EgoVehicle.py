@@ -74,8 +74,10 @@ class EgoVehicle(Vehicle):
     # region drawing functions
 
     def draw(self, surface):
-        self.draw_sensor_rays(surface)
-        self.draw_sensor_area(surface)
+        if self.perceiving:
+            self.draw_sensor_rays(surface)
+            self.draw_sensor_area(surface)
+
         self.draw_predicted_motion(surface)
         self.draw_closest_unknown_points(surface)
         self.draw_collision_points(surface)
@@ -192,6 +194,7 @@ class EgoVehicle(Vehicle):
 
         if self.perceiving:
             self.perceive()
+        self.calculate_predicted_motion()
 
         if self.self_driving:
             self.compute_desired_motion()
@@ -214,7 +217,6 @@ class EgoVehicle(Vehicle):
     def perceive(self):
         self.shoot_rays()
         self.calculate_unknown_areas()
-        self.calculate_predicted_motion()
         self.calculate_closest_unknown_points()
         self.assess_closest_points()
 
@@ -241,18 +243,21 @@ class EgoVehicle(Vehicle):
         self.computed_turn = self.delta_direction_to_point(self.next_wp.position)
 
     def collate_information(self):
-        self.overall_desired_acceleration = self.computed_acc
-        if self.override_acc is not None:
-            self.overall_desired_acceleration = self.override_acc
-            self.override_acc = None
 
         self.overall_desired_turn_circle_change = self.computed_turn
         if self.override_turn is not None:
             self.overall_desired_turn_circle_change = self.override_turn
             self.override_turn = None
-        # if abs(self.overall_desired_turn_circle_change) > 2 * self.turn_inc:
-        #     self.computed_v_long *= 0.5
-        # self.overall_desired_acceleration = self.computed_v_long - self.v_long
+        if abs(self.overall_desired_turn_circle_change) > 2 * self.turn_inc:
+            self.computed_v_long *= 0.5
+            self.calculate_desired_acc()
+
+
+        self.overall_desired_acceleration = self.computed_acc
+        if self.override_acc is not None:
+            self.overall_desired_acceleration = self.override_acc
+            self.override_acc = None
+
 
     def calculate_desired_speed(self):
         self.computed_v_long = self.max_v

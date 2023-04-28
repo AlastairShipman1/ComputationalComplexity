@@ -16,7 +16,7 @@ class Visualisation:
         self.is_dragging = False
         self.initial_size = 1500, 750
         self.size = 1500, 750
-        self.world= self.size
+        self.world_size= self.size
         if extents is not None:
             self.world_size = extents[0] - extents[1], extents[2] - extents[3]
         self.offset = 0, 0
@@ -47,15 +47,16 @@ class Visualisation:
 
     # region Game logic
     def update(self):
+        self.clock.tick(config.DELTA_TIME_MS)
         for event in pygame.event.get():
             finished = self.handle_events(event)
         self.draw_single_frame()
-        if config.RECORDING:
-            # Stop the screen recording
-            self.recorder.end_recording()
+
 
 
     def quit(self):
+        if config.RECORDING:
+            self.recorder.end_recording()
         pygame.display.quit()
         pygame.quit()
 
@@ -82,6 +83,10 @@ class Visualisation:
                 self.quit()
             elif event.key == pygame.K_t:
                 self.tracking = not self.tracking
+            # ideally this shouldn't be here, but i think pygame.event.get purges the events, so you can only do it once?
+            elif event.key == pygame.K_m:
+                self.world.ego_vehicle.send_message('m')
+
 
         elif event.type == pygame.MOUSEBUTTONUP:
             self.handle_mouse_clicked(event)

@@ -23,22 +23,6 @@ class PygameControlObject:
         if keys[pygame.K_RIGHT]:
             self.env.ego_vehicle.send_message("r")
 
-        for event in pygame.event.get():
-            done = self.parse_control(event)
-            if done:
-                return True
-        return False
-
-
-    def parse_control(self, event):
-        if event.type == pygame.QUIT:
-            return True
-        if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_ESCAPE:
-                return True
-            if event.key == pygame.K_m:
-                self.env.ego_vehicle.send_message('m')
-        return False
 
 class KeyboardControlObject:
     def __init__(self, env):
