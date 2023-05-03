@@ -3,10 +3,10 @@ from stable_baselines3.common.env_checker import check_env
 
 import config
 from RLEnvironment import RLEnvironment
-from model.Environment.SimulationEnvironment import SimulationEnvironment
+from model.Environment.World import World
 from visualisation.PygameVisualiser.PygameVisualisation import Visualisation
 
-simEnv = SimulationEnvironment()
+simEnv = World()
 v = Visualisation(simEnv)
 env = RLEnvironment(simEnv, v)
 

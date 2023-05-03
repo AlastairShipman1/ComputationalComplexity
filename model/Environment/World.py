@@ -14,7 +14,7 @@ Units in metric
 """
 
 
-class SimulationEnvironment:
+class World:
     def __init__(self, road_network=None, optimal_route=None):
         self.draw_offset = 0,0
         self.waypoints = []

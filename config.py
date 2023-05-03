@@ -14,9 +14,9 @@ class RL_Modes(Enum):
 ############################
 PROFILING = False
 RECORDING = False
-DELTA_TIME_MS = 50
+DELTA_TIME_MS = 150
 SIMULATION_FPS = int(1000/DELTA_TIME_MS)
-INTERFACE_MODE = Interface_Modes.Manual
+INTERFACE_MODE = Interface_Modes.RL
 RL_MODE = RL_Modes.Train
 
 DISPLAY_ON = True
@@ -56,7 +56,7 @@ MODEL_PATH = f"{OUTPUT_FP}/Models"
 LOG_PATH = f"{OUTPUT_FP}/Logs"
 
 all_paths = [INPUT_FP, OUTPUT_FP, INPUT_IMAGE_FP, INPUT_VIDEO_FP, INPUT_GIS_FP,
-             OUTPUT_IMAGE_FP, OUTPUT_VIDEO_FP, _temp_image_folder]
+             OUTPUT_IMAGE_FP, OUTPUT_VIDEO_FP, MODEL_PATH, LOG_PATH, _temp_image_folder]
 
 for path in all_paths:
     if not os.path.exists(path):

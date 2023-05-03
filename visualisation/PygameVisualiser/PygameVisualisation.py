@@ -49,7 +49,7 @@ class Visualisation:
     def update(self):
         self.clock.tick(config.DELTA_TIME_MS)
         for event in pygame.event.get():
-            finished = self.handle_events(event)
+            self.handle_events(event)
         self.draw_single_frame()
 
 
