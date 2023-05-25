@@ -26,11 +26,13 @@ class Vehicle:
         self.direction = np.deg2rad(starting_direction_degrees)
         self.vel_inc = 1  # ms^-2
         self.max_acc_rate = 5  # ms^-2
-        self.turn_inc = np.deg2rad(.3)  # rads per frame
-        self.turn_circle = 0  # rads per frame
-        self.max_turn_circle = np.deg2rad(3.5)  # rads per frame
+        self.turn_rate_inc = np.deg2rad(.3)  # rads per second
+        self.turn_rate = 0  # rads per frame
+        self.max_turn_rate = np.deg2rad(3.5)  # rads per second
         self.max_v = 30  # 30 is approximately 70mph
-        self.dt = np.inf # this is in milliseconds, so need to update all move functions
+        self.dt = 0  # this is in milliseconds, so need to update all move functions
+        self.mu = 1
+        self.g = 9.8
 
         # drawing/visualisation variables
         self.image_path = image_path
@@ -43,28 +45,28 @@ class Vehicle:
                           self.actual_vehicle_size[1] * self.pixel_to_metres_ratio]
 
         self.original_image = None
-        self.image= None
-        self.image_offset = [0,0]
+        self.image = None
+        self.image_offset = [0, 0]
         if config.DISPLAY_ON:
             self.original_image = pygame.image.load(self.image_path)
             self.original_image = pygame.transform.rotate(self.original_image, 180)
             self.image = pygame.transform.smoothscale(self.original_image, self.draw_size)
             self.rotate()
-
             self.image_offset = self.image.get_rect().center
+
         self.draw_offset = 0, 0
         self.draw_scale = 1
         self.world_x = -self.image_offset[0] + initial_position[0]
         self.world_y = -self.image_offset[1] + initial_position[1]
+
         self.draw_x = self.world_x
         self.draw_y = self.world_y
 
     def get_velocity(self):
-        return [self.v_long*np.cos(self.direction), self.v_long*np.sin(self.direction)]
+        return [self.v_long * np.cos(self.direction), self.v_long * np.sin(self.direction)]
 
     def get_position(self):
         return [self.world_x, self.world_y]
-
 
     # region utils
     def move(self):
@@ -78,35 +80,36 @@ class Vehicle:
         self.world_y -= y_addition
 
     def update(self, dt):
+
         self.dt = dt
-        self.move()
-        self.rotate(self.turn_circle)
+
         self.friction()
+        self.move()
+        self.rotate(self.turn_rate)
 
     def friction(self):
         # this should be based on an actual physical air resistance model,
         # and friction should maximise when speed is max_v, and at this point, it should equal the vel_inc value
 
         # if dt is too low, then the simulation takes far too long for the car to gets going.
-        if abs(self.v_long) > self.vel_inc*self.dt/1000:
-            k = 1 - np.power((self.max_v-abs(self.v_long))/self.max_v, 0.99) # ratio of 0 (zero speed) -1 (max speed)
-            v_delta = self.vel_inc * k * self.dt/1000
-            self.v_long -= np.sign(self.v_long)*v_delta
-        elif abs(self.v_long) < 0.999*self.vel_inc*self.dt/1000:
-            self.v_long=0
-            return
+        if abs(self.v_long) > self.vel_inc * self.dt / 1000:
+            k = 1 - np.power((self.max_v - abs(self.v_long)) / self.max_v,
+                             0.99)  # ratio of 0 (zero speed) -1 (max speed)
+            v_delta = self.vel_inc * k * self.dt / 1000
+            self.v_long -= np.sign(self.v_long) * v_delta
+        elif abs(self.v_long) < 0.999 * self.vel_inc * self.dt / 1000:
+            self.v_long = 0
 
-        # TODO: this should be dependent on the friction, not magic numbers
-        turn_circle = self.turn_circle - np.sign(self.turn_circle) * self.turn_inc * 0.9
-        if np.sign(self.turn_circle) != np.sign(turn_circle):
+        # TODO: this should be dependent on the friction, not magic numbers.
+        #  currently it subtracts 90% of the turn rate increment until zero
+        turn_circle = self.turn_rate - np.sign(self.turn_rate) * self.turn_rate_inc * 0.9
+        if np.sign(self.turn_rate) != np.sign(turn_circle):
             turn_circle = 0
-        self.turn_circle = turn_circle
+        self.turn_rate = turn_circle
 
     def draw(self, surface):
         ##### draw agent on surface#########
-
         self._create_image_instance()
-
         previous_image_center = self.image.get_rect().center
         rotated_image = pygame.transform.rotate(self.image, np.rad2deg(self.direction))
         rotated_image_center = rotated_image.get_rect().center
@@ -115,7 +118,6 @@ class Vehicle:
 
         self.image = rotated_image
         self.image_offset = [self.image_offset[0] + offset[0], self.image_offset[1] + offset[1]]
-
 
         self.update_offset(self.draw_offset)
         pos = (self.draw_x - self.image_offset[0], self.draw_y - self.image_offset[1])
@@ -126,36 +128,44 @@ class Vehicle:
         y = coord[1] * self.draw_scale + self.draw_offset[1]
         return x, y
 
-
     def send_message(self, string):
         ...
 
     def accelerate(self, amount):
         # accommodate the fact that dt is in milliseconds
-        dt_seconds = self.dt/1000
+        dt_seconds = self.dt / 1000
         if abs(amount) > self.vel_inc:
             amount = np.sign(amount) * self.vel_inc
-        v_long = self.v_long + amount*dt_seconds
+        v_long = self.v_long + amount * dt_seconds
         if abs(v_long) > abs(self.max_v):
             v_long = np.sign(self.v_long) * self.max_v
         self.v_long = v_long
 
     def turn_wheel(self, direction):
-        direction = np.sign(direction) * min(abs(direction), self.turn_inc)
-        if self.turn_circle == 0:
-            self.turn_circle = direction
+        # there is the maximum amount you can turn in any one frame, self.turn_inc
+        direction = np.sign(direction) * min(abs(direction), self.turn_rate_inc)
+        if self.turn_rate == 0:
+            self.turn_rate = direction
             return
-        turn_circle = direction + self.turn_circle
-        turn_circle = np.sign(turn_circle) * min(self.max_turn_circle, abs(turn_circle))
-        self.turn_circle = turn_circle
+
+        # this checks for the maximum turning circle
+        turn_circle = direction + self.turn_rate
+        turn_circle = np.sign(turn_circle) * min(self.max_turn_rate, abs(turn_circle))
+        self.turn_rate = turn_circle
 
     def rotate(self, angle_increment_radians=0):
-        self.direction += angle_increment_radians
+        # there is a minimum and a maximum amount that you can turn.
+        # this depends on your speed: too fast, and you can't turn for risk of slipping
+        # too slow, and you can't turn because of kinematic constraints.
+        # a better version is to implement an Ackermann controller, but this will do in a pinch.
+        # also, this is not appropriate for articulated vehicles
+
+
+        self.direction += self.dt/1000 * angle_increment_radians
         if self.direction < 0:
             self.direction += 2 * np.pi
         if abs(self.direction) > 2 * np.pi:
             self.direction = self.direction % (2 * np.pi)
-
 
     def update_offset(self, offset):
         self.draw_offset = offset

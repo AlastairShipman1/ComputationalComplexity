@@ -6,6 +6,7 @@ class Waypoint:
         basic waypoint type
         this class defines the point that an agent should get to,
         at a time they should be there, and the velocity that they should have when they are
+        angles in radians
     '''
     def __init__(self,guid, x, y, v_x=0, v_y=0, theta=0):
         self.position = [x, y]

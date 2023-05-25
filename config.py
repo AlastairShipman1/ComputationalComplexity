@@ -14,9 +14,7 @@ class RL_Modes(Enum):
 ############################
 PROFILING = False
 RECORDING = False
-DELTA_TIME_MS = 150
-SIMULATION_FPS = int(1000/DELTA_TIME_MS)
-INTERFACE_MODE = Interface_Modes.RL
+INTERFACE_MODE = Interface_Modes.Manual
 RL_MODE = RL_Modes.Train
 
 DISPLAY_ON = True
@@ -27,6 +25,8 @@ if INTERFACE_MODE == Interface_Modes.RL:
 #############################
 ## World simulation config ##
 #############################
+DELTA_TIME_MS = 100
+SIMULATION_FPS = int(1000/DELTA_TIME_MS)
 OBSTACLES_ON = False
 OBSTACLE_NUMBER = 3
 EGO_VEHICLE_SELF_DRIVE = False

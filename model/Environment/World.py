@@ -11,26 +11,28 @@ from model.ModelUtils import Waypoint
 """
 This is the environment
 Units in metric
+angles in radians
 """
 
 
 class World:
     def __init__(self, road_network=None, optimal_route=None):
-        self.draw_offset = 0,0
+        self.draw_offset = 0, 0
         self.waypoints = []
+        self.t = 0
 
         if road_network is not None and optimal_route is not None:
             for i, node_id in enumerate(optimal_route):
                 x = road_network.nodes[node_id]['x']
                 y = road_network.nodes[node_id]['y']
-                self.waypoints.append(Waypoint(i, x,y))
+                self.waypoints.append(Waypoint(i, x, y))
         else:
-            waypoints = [[25,0],[50, 50], [50, 100],[25, 125], [0, 125],[-25, 100], [-25, 25], [0, 0]]
+            waypoints = [[25, 0], [50, 50], [50, 100], [25, 125], [0, 125], [-25, 100], [-25, 25], [0, 0]]
             for i, val in enumerate(waypoints):
-                #self,guid, x, y, v_x=0, v_y=0, theta=0
-                self.waypoints.append(Waypoint(i, val[0], val[1], theta=4*np.pi*(np.random.random()-0.5)))
+                # self,guid, x, y, v_x=0, v_y=0, theta=0
+                self.waypoints.append(Waypoint(i, val[0], val[1], theta=4 * np.pi * (np.random.random() - 0.5)))
 
-        self.pygame_agents = []
+        self.all_agents = []
         self.static_obstacles = []
         self.dynamic_obstacles = []
         self.obstacles = shapely.geometry.MultiPolygon()
@@ -39,15 +41,14 @@ class World:
         self.original_images = []
         self.building_width = 50
 
-
         if config.OBSTACLES_ON:
             self.create_obstacles()
             self.obstacles = shapely.geometry.MultiPolygon(self.static_obstacles)
 
         self.ego_vehicle = EgoVehicle(world=self)
-        self.ego_vehicle.world_x=self.waypoints[0].position[0]
-        self.ego_vehicle.world_y=self.waypoints[0].position[1]
-        self.pygame_agents.append(self.ego_vehicle)
+        self.ego_vehicle.world_x = self.waypoints[0].position[0]
+        self.ego_vehicle.world_y = self.waypoints[0].position[1]
+        self.all_agents.append(self.ego_vehicle)
 
     def create_obstacles(self):
         build_1_path = config.INPUT_IMAGE_FP + 'Building_topdown_1.png'
@@ -79,14 +80,13 @@ class World:
                 self.obstacle_locations.append([x, y])
 
                 v = NormalVehicle(starting_position=(x - rect[2] / 2, y * 2.5), world=self)
-                self.pygame_agents.append(v)
+                self.all_agents.append(v)
 
                 x += scaled_image.get_width() + 100
 
-
     def update_offset(self, offset):
-        self.draw_offset =offset
-        for agent in self.pygame_agents:
+        self.draw_offset = offset
+        for agent in self.all_agents:
             agent.update_offset(offset)
 
     def update_scale(self, updated_zoom, previous_zoom):
@@ -98,17 +98,18 @@ class World:
             self.obstacle_images[i] = pygame.transform.smoothscale(self.original_images[i],
                                                                    (self.building_width, self.building_width))
 
-        for agent in self.pygame_agents:
+        for agent in self.all_agents:
             agent.update_scale(updated_zoom)
 
     def draw(self, surface):
         for i, obs in enumerate(self.obstacle_images):
-            x=self.obstacle_locations[i][0] + self.draw_offset[0]
-            y=self.obstacle_locations[i][1] + self.draw_offset[1]
-            surface.blit(obs,(x,y))
-        for agent in self.pygame_agents:
+            x = self.obstacle_locations[i][0] + self.draw_offset[0]
+            y = self.obstacle_locations[i][1] + self.draw_offset[1]
+            surface.blit(obs, (x, y))
+        for agent in self.all_agents:
             agent.draw(surface)
 
     def update(self, dt):
-        for agent in self.pygame_agents:
+        self.t += dt
+        for agent in self.all_agents:
             agent.update(dt)

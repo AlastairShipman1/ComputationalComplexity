@@ -71,30 +71,43 @@ class EgoVehicle(Vehicle):
         self.actor_point = None
         self.next_wp = self.find_first_waypoint()
 
+
+
     # region drawing functions
 
     def draw(self, surface):
         if self.perceiving:
             self.draw_sensor_rays(surface)
             self.draw_sensor_area(surface)
-
         self.draw_predicted_motion(surface)
         self.draw_closest_unknown_points(surface)
         self.draw_collision_points(surface)
         self.draw_collision_meta_data(surface)
         self.draw_waypoints(surface)
-
         super().draw(surface)
 
     def draw_waypoints(self, surface):
         for p in self.world.waypoints:
-            draw_forward_coords = self.convert_world_to_draw_coords(p.position)
-            if draw_forward_coords[0]>0:
-                pygame.draw.circle(surface, Colours.RED, draw_forward_coords, 10)
+            draw_coords = self.convert_world_to_draw_coords(p.position)
+            if draw_coords[0]>0 and draw_coords[1]>0:
+                pygame.draw.circle(surface, Colours.RED, draw_coords, 5)
+
+                arrow_width_angle= np.deg2rad(10)
+                arrow_width_length=15
+                arrow_length=25
+                heading = p.direction
+                end_point = [draw_coords[0]+arrow_length*np.cos(heading), draw_coords[1]+arrow_length*np.sin(heading)]
+                arrow_head_point_1 = [end_point[0] - arrow_width_length*np.cos(heading-arrow_width_angle), end_point[1]-arrow_width_length*np.sin(heading-arrow_width_angle)]
+                arrow_head_point_2 = [end_point[0] - arrow_width_length*np.cos(heading+arrow_width_angle), end_point[1]-arrow_width_length*np.sin(heading+arrow_width_angle)]
+
+                pygame.draw.aaline(surface, Colours.RED, draw_coords, end_point)
+                pygame.draw.aaline(surface, Colours.RED, end_point, arrow_head_point_1)
+                pygame.draw.aaline(surface, Colours.RED, end_point, arrow_head_point_2)
+
         if self.next_wp is not None:
-            draw_forward_coords = self.convert_world_to_draw_coords(self.next_wp.position)
-            if draw_forward_coords[0]>0:
-                pygame.draw.circle(surface, Colours.GREEN, draw_forward_coords, 10)
+            draw_coords = self.convert_world_to_draw_coords(self.next_wp.position)
+            if draw_coords[0]>0 and draw_coords[1]>0:
+                pygame.draw.circle(surface, Colours.GREEN, draw_coords, 5)
 
     def draw_collision_meta_data(self, surface):
         if self.d_lat is None or self.d_long is None:
@@ -181,15 +194,16 @@ class EgoVehicle(Vehicle):
             self.override_acc = -self.vel_inc
 
         if string == "l":
-            self.override_turn = np.sign(self.v_long) * self.turn_inc
+            self.override_turn = np.sign(self.v_long) * self.turn_rate_inc
 
         if string == "r":
-            self.override_turn = -np.sign(self.v_long) * self.turn_inc
+            self.override_turn = -np.sign(self.v_long) * self.turn_rate_inc
 
         if string == "m":
             self.self_driving = not self.self_driving
 
     def update(self, dt):
+
         super().update(dt)
 
         if self.perceiving:
@@ -248,7 +262,7 @@ class EgoVehicle(Vehicle):
         if self.override_turn is not None:
             self.overall_desired_turn_circle_change = self.override_turn
             self.override_turn = None
-        if abs(self.overall_desired_turn_circle_change) > 2 * self.turn_inc:
+        if abs(self.overall_desired_turn_circle_change) > 2 * self.turn_rate_inc:
             self.computed_v_long *= 0.5
             self.calculate_desired_acc()
 

@@ -53,13 +53,14 @@ def main():
     # road_network, optimal_route, background_img, background_img_extents = get_edinburgh()
     world = World()
     v=None
+
     if config.DISPLAY_ON:
         v = Visualisation(world)
+    if config.INTERFACE_MODE == config.Interface_Modes.Manual:
+        manual_mode(world, v)
     try:
         if config.INTERFACE_MODE == config.Interface_Modes.RL:
             RL_analysis(world, v)
-        elif config.INTERFACE_MODE == config.Interface_Modes.Manual:
-            manual_mode(world, v)
     except Exception as e:
         print(f"Error in Main: {e}")
     finally:

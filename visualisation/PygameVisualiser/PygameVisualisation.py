@@ -63,7 +63,6 @@ class Visualisation:
     def draw_single_frame(self):
         if self.is_paused:
             return
-
         self.draw_world()
 
         if self.tracking:

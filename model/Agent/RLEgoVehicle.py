@@ -17,7 +17,7 @@ class RLEgoVehicle(Vehicle):
         image_path = config.INPUT_IMAGE_FP + '/blue_car_top_down.png'
         super().__init__(image_path=image_path, world=world)
         self.world = world
-        self.set_goal([1210,330])
+        self.set_goal([0, 0])
 
     def set_goal(self, goal):
         self.goal=goal
@@ -34,9 +34,9 @@ class RLEgoVehicle(Vehicle):
         if string == "d":
             self.accelerate(-self.vel_inc)
         if string == "l":
-            self.turn_wheel(np.sign(self.v_long) * self.turn_inc)
+            self.turn_wheel(np.sign(self.v_long) * self.turn_rate_inc)
         if string == "r":
-            self.turn_wheel(-np.sign(self.v_long) * self.turn_inc)
+            self.turn_wheel(-np.sign(self.v_long) * self.turn_rate_inc)
 
     # endregion
 

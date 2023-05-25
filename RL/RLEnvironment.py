@@ -14,7 +14,7 @@ class RLEnvironment(gym.Env):
         self.world.ego_vehicle = RLEgoVehicle()
         self.world.ego_vehicle.world_x = self.world.waypoints[0].position[0]
         self.world.ego_vehicle.world_y = self.world.waypoints[0].position[1]
-        self.world.pygame_agents[-1] = self.world.ego_vehicle
+        self.world.all_agents[-1] = self.world.ego_vehicle
 
         self.ego_vehicle = self.world.ego_vehicle
 
