@@ -21,17 +21,17 @@ class Vehicle:
 
         # simulation variables
         self.world = world
-        self.v_long = 0
+        self.v_long = 0 #m/s
         self.v_lat = 0
         self.direction = np.deg2rad(starting_direction_degrees)
         self.vel_inc = 1  # ms^-2
         self.max_acc_rate = 5  # ms^-2
-        self.turn_rate_inc = np.deg2rad(.3)  # rads per second
+        self.turn_rate_inc = np.deg2rad(.5)  # rads per second
         self.turn_rate = 0  # rads per frame
-        self.max_turn_rate = np.deg2rad(3.5)  # rads per second
+        self.max_turn_rate = np.deg2rad(7.5)  # rads per second
         self.max_v = 30  # 30 is approximately 70mph
         self.dt = 0  # this is in milliseconds, so need to update all move functions
-        self.mu = 1
+        self.mu = 0.9
         self.g = 9.8
 
         # drawing/visualisation variables
@@ -51,7 +51,6 @@ class Vehicle:
             self.original_image = pygame.image.load(self.image_path)
             self.original_image = pygame.transform.rotate(self.original_image, 180)
             self.image = pygame.transform.smoothscale(self.original_image, self.draw_size)
-            self.rotate()
             self.image_offset = self.image.get_rect().center
 
         self.draw_offset = 0, 0
@@ -101,8 +100,8 @@ class Vehicle:
             self.v_long = 0
 
         # TODO: this should be dependent on the friction, not magic numbers.
-        #  currently it subtracts 90% of the turn rate increment until zero
-        turn_circle = self.turn_rate - np.sign(self.turn_rate) * self.turn_rate_inc * 0.9
+        #  currently it subtracts x% of the turn rate increment until zero
+        turn_circle = self.turn_rate - np.sign(self.turn_rate) * self.turn_rate_inc * 0.5
         if np.sign(self.turn_rate) != np.sign(turn_circle):
             turn_circle = 0
         self.turn_rate = turn_circle
@@ -148,18 +147,39 @@ class Vehicle:
             self.turn_rate = direction
             return
 
-        # this checks for the maximum turning circle
+        # this checks for the maximum turning circle.
+        # this is the most the wheels can turn, *not* the most the car can turn at any point
+        # e.g.: limitations with slip, or kinematics
         turn_circle = direction + self.turn_rate
         turn_circle = np.sign(turn_circle) * min(self.max_turn_rate, abs(turn_circle))
         self.turn_rate = turn_circle
 
     def rotate(self, angle_increment_radians=0):
-        # there is a minimum and a maximum amount that you can turn.
+        if self.v_long==0:
+            return
+        # there is a maximum amount that you can turn.
         # this depends on your speed: too fast, and you can't turn for risk of slipping
         # too slow, and you can't turn because of kinematic constraints.
         # a better version is to implement an Ackermann controller, but this will do in a pinch.
         # also, this is not appropriate for articulated vehicles
 
+
+        # the kinematic constraint is that neither set of wheels can go backwards (i.e. it can't turn on a sixpence)
+        # another way of looking at this is the centre of rotation cannot be under the car
+        # the final way of looking at this is the radius of curvature must be large than the car width
+        # low_speed_max_turn = 1
+        # r_min = self.actual_vehicle_size[1]/2
+        # r_actual=abs(self.v_long/self.turn_rate)
+        # # if r_Actual is lower than r_min, then
+        # if r_actual < r_min:
+        #     angle_increment_radians = self.v_long/r_min
+        #
+        #
+        #
+        # # the slip constraint is derived from circular movement, point load, etc.
+        # high_speed_max_turn = abs(self.mu*self.g/self.v_long)
+        # if high_speed_max_turn<angle_increment_radians:
+        #     angle_increment_radians=high_speed_max_turn
 
         self.direction += self.dt/1000 * angle_increment_radians
         if self.direction < 0:
@@ -177,7 +197,6 @@ class Vehicle:
         self.pixel_to_metres_ratio *= inc
         self.draw_size = [self.actual_vehicle_size[0] * self.pixel_to_metres_ratio,
                           self.actual_vehicle_size[1] * self.pixel_to_metres_ratio]
-        self.rotate()
         self.draw_scale = scale
 
     def _create_image_instance(self):
