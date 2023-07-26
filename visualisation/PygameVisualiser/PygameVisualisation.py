@@ -14,6 +14,7 @@ class Visualisation:
         self.zoom = 1
         self.previous_pos = None
         self.is_dragging = False
+        self.tracking = False
         self.initial_size = 1500, 750
         self.size = 1500, 750
         self.world_size= self.size
@@ -64,7 +65,7 @@ class Visualisation:
             return
         self.draw_world()
 
-        if self.is_tracking:
+        if self.tracking:
             self.recentre_on_ego_agent()
 
         pygame.display.flip()
@@ -115,19 +116,19 @@ class Visualisation:
             self.is_dragging = True
             delta_x = current_pos[0] - self.previous_pos[0]
             delta_y = current_pos[1] - self.previous_pos[1]
-            self.manual_offset = self.manual_offset[0] + delta_x, self.manual_offset[1] + delta_y
+            self.offset = self.offset[0] + delta_x, self.offset[1] + delta_y
             for agent in self.world.pygame_agents:
-                agent.update_offset(self.manual_offset)
+                agent.update_offset(self.offset)
         self.previous_pos = current_pos
 
     def handle_mousewheel(self, multiplier):
         sc = 1 / (1.025 + multiplier * 0.225)  # cycle between 25% increase, and 80% decrease in zoom.
         zoom = self.zoom * sc
-        self.manual_offset = self.manual_offset[0] * sc, self.manual_offset[1] * sc
+        self.offset = self.offset[0] * sc, self.offset[1] * sc
         self.world.update_scale(zoom, self.zoom)
         self.zoom = zoom
         self.pixel_to_metre_ratio = self.zoom
-        self.update_offset(self.manual_offset)
+        self.update_offset(self.offset)
         # update the image
         if self.is_showing_background:
             size = (int(self.bg_original.get_width() * self.zoom), int(self.bg_original.get_height() * self.zoom))
@@ -142,14 +143,14 @@ class Visualisation:
 
     def recentre_on_ego_agent(self):
         starting_pos = [self.world.ego_vehicle.draw_x, self.world.ego_vehicle.draw_y]
-        delta_x = -starting_pos[0] + self.display_size[0] / 2
-        delta_y = -starting_pos[1] + self.display_size[1] / 2
+        delta_x = -starting_pos[0] + self.size[0] / 2
+        delta_y = -starting_pos[1] + self.size[1] / 2
 
-        self.manual_offset = self.manual_offset[0] + delta_x, self.manual_offset[1] + delta_y
-        self.update_offset(self.manual_offset)
+        self.offset = self.offset[0] + delta_x, self.offset[1] + delta_y
+        self.update_offset(self.offset)
 
     def update_offset(self, offset):
-        for agent in self.world.pygame_agents:
+        for agent in self.world.all_agents:
             agent.update_offset(offset)
 
     # endregion
