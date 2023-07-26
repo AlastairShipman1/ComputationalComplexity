@@ -106,9 +106,6 @@ class RLEnvironment(gym.Env):
 
         # are you near the point?
 
-
-
-
         int_array = []
         for i in range(6):
             int_array.append(self.obs[i] - self.goal[i])

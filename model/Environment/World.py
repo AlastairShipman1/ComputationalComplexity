@@ -51,9 +51,9 @@ class World:
         self.all_agents.append(self.ego_vehicle)
 
     def create_obstacles(self):
-        build_1_path = config.INPUT_IMAGE_FP + 'Building_topdown_1.png'
-        build_2_path = config.INPUT_IMAGE_FP + 'Building_topdown_2.png'
-        build_3_path = config.INPUT_IMAGE_FP + 'Building_topdown_3.png'
+        build_1_path = config.INPUT_IMAGE_FP + '/Building_topdown_1.png'
+        build_2_path = config.INPUT_IMAGE_FP + '/Building_topdown_2.png'
+        build_3_path = config.INPUT_IMAGE_FP + '/Building_topdown_3.png'
 
         build_paths = [build_1_path, build_2_path, build_3_path]
         poss_rotations = [0, 90, 180, 270]

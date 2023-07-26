@@ -90,7 +90,7 @@ class Vehicle:
         # this should be based on an actual physical air resistance model,
         # and friction should maximise when speed is max_v, and at this point, it should equal the vel_inc value
 
-        # if dt is too low, then the simulation takes far too long for the car to gets going.
+        # if dt is too low, then the simulation takes far too long for the car to get going.
         if abs(self.v_long) > self.vel_inc * self.dt / 1000:
             k = 1 - np.power((self.max_v - abs(self.v_long)) / self.max_v,
                              0.99)  # ratio of 0 (zero speed) -1 (max speed)

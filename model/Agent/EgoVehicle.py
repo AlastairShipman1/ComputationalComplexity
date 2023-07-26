@@ -90,7 +90,7 @@ class EgoVehicle(Vehicle):
         for p in self.world.waypoints:
             draw_coords = self.convert_world_to_draw_coords(p.position)
             if draw_coords[0]>0 and draw_coords[1]>0:
-                pygame.draw.circle(surface, Colours.RED, draw_coords, 5)
+                # pygame.draw.circle(surface, Colours.RED, draw_coords, 5)
 
                 arrow_width_angle= np.deg2rad(10)
                 arrow_width_length=15
@@ -106,8 +106,8 @@ class EgoVehicle(Vehicle):
 
         if self.next_wp is not None:
             draw_coords = self.convert_world_to_draw_coords(self.next_wp.position)
-            if draw_coords[0]>0 and draw_coords[1]>0:
-                pygame.draw.circle(surface, Colours.GREEN, draw_coords, 5)
+            # if draw_coords[0]>0 and draw_coords[1]>0:
+            #     pygame.draw.circle(surface, Colours.GREEN, draw_coords, 5)
 
     def draw_collision_meta_data(self, surface):
         if self.d_lat is None or self.d_long is None:
@@ -127,8 +127,10 @@ class EgoVehicle(Vehicle):
         pygame.draw.aaline(surface, Colours.GREEN, (self.draw_x, self.draw_y), d_long_draw_coords)
         pygame.draw.aaline(surface, Colours.GREEN, d_long_draw_coords, d_lat_draw_coords)
 
-        # draw_forward_coords = self.convert_world_to_draw_coords(self.vehicle_forward_point)
-        # pygame.draw.circle(surface, Colours.RED, draw_forward_coords, 10)
+        if self.vehicle_forward_point is not None:
+            draw_forward_coords = self.convert_world_to_draw_coords(self.vehicle_forward_point)
+            if len(draw_forward_coords)>0:
+                pygame.draw.circle(surface, Colours.RED, draw_forward_coords, 10)
 
     def draw_collision_points(self, surface):
         if self.actor_point is None:
@@ -150,8 +152,8 @@ class EgoVehicle(Vehicle):
     def draw_closest_unknown_points(self, surface):
         for point in self.closest_unknown_points:
             pt = self.convert_world_to_draw_coords([point[0], point[1]])
-            if pt[0]>0:
-                pygame.draw.circle(surface, Colours.BLUE, pt, 5)
+            # if pt[0]>0:
+            #     pygame.draw.circle(surface, Colours.BLUE, pt, 5)
 
     def draw_sensor_rays(self, surface):
         ray_points = [self.convert_world_to_draw_coords([x, y]) for x, y in self.ray_endpoints]
@@ -437,7 +439,7 @@ class EgoVehicle(Vehicle):
         self.ray_endpoints = []
 
         angle = self.direction
-        number_rays = 10
+        number_rays = 100
         for i in range(number_rays):
             # create a line between the car and the max length
             # cycle through all obstacles

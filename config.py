@@ -27,10 +27,10 @@ if INTERFACE_MODE == Interface_Modes.RL:
 #############################
 DELTA_TIME_MS = 100
 SIMULATION_FPS = int(1000/DELTA_TIME_MS)
-OBSTACLES_ON = False
+OBSTACLES_ON = True
 OBSTACLE_NUMBER = 3
 EGO_VEHICLE_SELF_DRIVE = False
-EGO_VEHICLE_PERCEIVE = False
+EGO_VEHICLE_PERCEIVE = True
 TRAFFIC_ON = False
 VEHICLE_NUMBER = 20
 PEDESTRIAN_NUMBER = 10 # TODO: haven't implemented this yet. look at the generate_traffic.py example if you want to
