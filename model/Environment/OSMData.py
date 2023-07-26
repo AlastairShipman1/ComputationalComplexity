@@ -1,3 +1,5 @@
+import json
+
 import numpy as np
 import osmnx as ox
 import networkx as nx
@@ -15,6 +17,18 @@ import matplotlib.pyplot as plt
 def main():
     get_edinburgh()
 
+
+def get_important_data(cached_filepath):
+    road_network, optimal_route, background_img, background_img_extents = get_edinburgh()
+    data_to_save={}
+    for i, node_id in enumerate(optimal_route):
+        x = road_network.nodes[node_id]['x']
+        y = road_network.nodes[node_id]['y']
+        data_to_save[i]=[x,y]
+    data_to_save['background_img_extents']=background_img_extents
+    out_file = open(cached_filepath, "w")
+    json.dump(data_to_save, out_file, indent=6)
+    out_file.close()
 
 def get_edinburgh():
     edinburgh_graph_filepath = config.INPUT_GIS_FP + "Edinburgh.graphml"
