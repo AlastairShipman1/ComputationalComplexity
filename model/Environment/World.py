@@ -89,6 +89,7 @@ class World:
         for agent in self.all_agents:
             agent.update_offset(offset)
 
+
     def update_scale(self, updated_zoom, previous_zoom):
         ratio = updated_zoom / previous_zoom
         for i, obs in enumerate(self.obstacle_locations):

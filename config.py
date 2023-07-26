@@ -48,14 +48,15 @@ INPUT_VIDEO_FP = f"{INPUT_FP}/assets/Videos"
 INPUT_GIS_FP = f"{INPUT_FP}/assets/GIS"
 OUTPUT_IMAGE_FP = f"{OUTPUT_FP}/images"
 OUTPUT_VIDEO_FP = f"{OUTPUT_FP}/videos"
+OUTPUT_RL_FP = f"{OUTPUT_FP}/RL"
 _temp_image_folder = f"{OUTPUT_IMAGE_FP}/temp"
 
-MODEL_PATH = f"{OUTPUT_FP}/Models"
-LOG_PATH = f"{OUTPUT_FP}/Logs"
+RL_MODEL_PATH = f"{OUTPUT_RL_FP}/Models"
+RL_LOG_PATH = f"{OUTPUT_RL_FP}/Logs"
 
 all_paths = [INPUT_FP, OUTPUT_FP, INPUT_IMAGE_FP, INPUT_VIDEO_FP, INPUT_GIS_FP,
-             OUTPUT_IMAGE_FP, OUTPUT_VIDEO_FP, MODEL_PATH, LOG_PATH, _temp_image_folder]
+             OUTPUT_IMAGE_FP, OUTPUT_VIDEO_FP, RL_LOG_PATH, RL_MODEL_PATH, _temp_image_folder]
 
 for path in all_paths:
     if not os.path.exists(path):
-        os.mkdir(path)
+        os.makedirs(path)

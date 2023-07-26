@@ -36,7 +36,6 @@ class Visualisation:
             self.bg_original_extents = extents
             self.bg_position = [0, 0]
             # self.bg_original = pygame.image.load('./Assets/Images/bg.png')
-
             # self.bg_original = pygame.transform.scale(self.bg_original, self.world_size)
             self.bg = pygame.transform.smoothscale(self.bg, self.world_size)
 
@@ -51,8 +50,6 @@ class Visualisation:
         for event in pygame.event.get():
             self.handle_events(event)
         self.draw_single_frame()
-
-
 
     def quit(self):
         if config.RECORDING:
@@ -86,7 +83,6 @@ class Visualisation:
             elif event.key == pygame.K_m:
                 self.world.ego_vehicle.send_message('m')
 
-
         elif event.type == pygame.MOUSEBUTTONUP:
             self.handle_mouse_clicked(event)
 
@@ -117,7 +113,7 @@ class Visualisation:
             delta_x = current_pos[0] - self.previous_pos[0]
             delta_y = current_pos[1] - self.previous_pos[1]
             self.offset = self.offset[0] + delta_x, self.offset[1] + delta_y
-            for agent in self.world.pygame_agents:
+            for agent in self.world.all_agents:
                 agent.update_offset(self.offset)
         self.previous_pos = current_pos
 
@@ -130,7 +126,7 @@ class Visualisation:
         self.pixel_to_metre_ratio = self.zoom
         self.update_offset(self.offset)
         # update the image
-        if self.is_showing_background:
+        if self.bg is not None:
             size = (int(self.bg_original.get_width() * self.zoom), int(self.bg_original.get_height() * self.zoom))
             self.bg = pygame.transform.smoothscale(self.bg_original, size)
             self.bg_position = [self.world.world_origin[0] * self.zoom, self.world.world_origin[1] * self.zoom]
@@ -156,7 +152,6 @@ class Visualisation:
     # endregion
 
     # region Draw functions
-
 
     def draw_world(self):
         """draw the agents here"""

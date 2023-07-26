@@ -17,13 +17,13 @@ def RL_analysis(world, visuals):
 
     TOTAL_TIMESTEPS = 100000
     if config.RL_MODE == config.RL_Modes.Train:
-        model = PPO('MlpPolicy', RLenv, verbose=1, tensorboard_log=config.LOG_PATH)
+        model = PPO('MlpPolicy', RLenv, verbose=1, tensorboard_log=config.RL_LOG_PATH)
         for i in range(1500):
             model.learn(total_timesteps=TOTAL_TIMESTEPS, reset_num_timesteps=False, tb_log_name="PPO")
-            model.save(f"{config.MODEL_PATH}/{TOTAL_TIMESTEPS * i}")
+            model.save(f"{config.RL_MODEL_PATH}/{TOTAL_TIMESTEPS * i}")
     else:
         # you should choose which model to load at this point
-        model = PPO.load(f"{config.MODEL_PATH}/2200000", env=RLenv)
+        model = PPO.load(f"{config.RL_MODEL_PATH}/2200000", env=RLenv)
         # Game loop
         done = False
         obs = RLenv.reset()
