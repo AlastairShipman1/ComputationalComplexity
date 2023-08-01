@@ -94,8 +94,8 @@ class Visualisation:
             sc = 1 / (1.025 + multiplier * 0.225)  # cycle between 25% increase, and 80% decrease in zoom.
             zoom = self.zoom * sc
             self.offset = self.offset[0] * sc, self.offset[1] * sc
-            self.world.update_scale(zoom, self.zoom)
-            self.world.update_offset(self.offset)
+            self.update_scale()
+            self.update_offset()
             self.zoom = zoom
             self.pixel_to_metre_ratio = self.zoom
 
@@ -109,22 +109,23 @@ class Visualisation:
 
     def handle_mousemotion(self, current_pos=(0,0)):
         if pygame.mouse.get_pressed()[0]:
-            self.is_dragging = True
             delta_x = current_pos[0] - self.previous_pos[0]
             delta_y = current_pos[1] - self.previous_pos[1]
             self.offset = self.offset[0] + delta_x, self.offset[1] + delta_y
-            for agent in self.world.all_agents:
-                agent.update_offset(self.offset)
+            self.update_offset()
+            self.is_dragging = True
+
         self.previous_pos = current_pos
 
     def handle_mousewheel(self, multiplier):
         sc = 1 / (1.025 + multiplier * 0.225)  # cycle between 25% increase, and 80% decrease in zoom.
         zoom = self.zoom * sc
         self.offset = self.offset[0] * sc, self.offset[1] * sc
-        self.world.update_scale(zoom, self.zoom)
         self.zoom = zoom
         self.pixel_to_metre_ratio = self.zoom
-        self.update_offset(self.offset)
+        self.update_offset()
+        self.update_scale()
+
         # update the image
         if self.bg is not None:
             size = (int(self.bg_original.get_width() * self.zoom), int(self.bg_original.get_height() * self.zoom))
@@ -143,11 +144,13 @@ class Visualisation:
         delta_y = -starting_pos[1] + self.size[1] / 2
 
         self.offset = self.offset[0] + delta_x, self.offset[1] + delta_y
-        self.update_offset(self.offset)
+        self.update_offset()
 
-    def update_offset(self, offset):
-        for agent in self.world.all_agents:
-            agent.update_offset(offset)
+    def update_offset(self):
+        self.world.update_offset(self.offset)
+
+    def update_scale(self):
+        self.world.update_scale(self.zoom)
 
     # endregion
 

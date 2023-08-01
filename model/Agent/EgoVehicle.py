@@ -398,7 +398,7 @@ class EgoVehicle(Vehicle):
             self.unknown_areas = None
             return
         self.unknown_areas = max_area.difference(covered_area)
-        self.unknown_areas = self.unknown_areas.difference(self.world.obstacles)
+        self.unknown_areas = self.unknown_areas.difference(self.world.obstacle_set.obstacles_polygon)
 
         if isinstance(self.unknown_areas, shapely.geometry.Polygon):
             self.unknown_areas = shapely.geometry.MultiPolygon([self.unknown_areas])
@@ -446,7 +446,7 @@ class EgoVehicle(Vehicle):
             target_x = self.world_x + np.cos(angle) * self.ray_length
             target_y = self.world_y - np.sin(angle) * self.ray_length
             l = LineString([(self.world_x, self.world_y), (target_x, target_y)])
-            for obs in self.world.obstacles.geoms:
+            for obs in self.world.obstacle_set.obstacles_polygon.geoms:
                 # if the line goes through the obstacle, then find the nearest point on the obstacle
                 # and store this
                 if l.intersects(obs.boundary):

@@ -206,10 +206,10 @@ class Vehicle:
         self.image_offset = self.image.get_rect().center
 
     def is_left(self, p):
-        self.vehicle_forward_point = [
+        vehicle_forward_point = [
             self.world_x + np.cos(self.direction),
             self.world_y - np.sin(self.direction)]
-        return is_left([self.world_x, self.world_y], self.vehicle_forward_point, p)
+        return is_left([self.world_x, self.world_y], vehicle_forward_point, p)
 
     def pov_distances(self, point, angle):
         dist = np.sqrt((point[0] - self.world_x) ** 2 + (point[1] - self.world_y) ** 2)
